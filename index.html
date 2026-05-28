@@ -13,11 +13,8 @@
   input[type="file"] { margin: 10px 0; color: #ccc; }
   button { background: #a8d8ff; color: #0a0a2e; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px; }
   button:disabled { background: #555; color: #999; cursor: not-allowed; }
-  #status { background: #111144; border-radius: 8px; padding: 20px; margin: 20px 0; min-height: 100px; white-space: pre-wrap; font-size: 13px; color: #ccc; border: 1px solid #333; }
+  #status { background: #111144; border-radius: 8px; padding: 20px; margin: 20px 0; min-height: 100px; white-space: pre-wrap; font-size: 13px; color: #ccc; border: 1px solid #333; max-height: 500px; overflow-y: auto; }
   #downloadBtn { display: none; background: #4CAF50; color: white; }
-  .progress { color: #a8d8ff; font-weight: bold; }
-  .error { color: #ff6b6b; }
-  .success { color: #4CAF50; }
 </style>
 </head>
 <body>
@@ -45,27 +42,26 @@
 
 <script>
 let fullCatalogue = "";
-let isRunning = false;
 
 async function startCataloguing() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const files = document.getElementById('photoInput').files;
   
   if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-    updateStatus('Please enter a valid API key starting with sk-ant-', 'error');
+    appendStatus('Please enter a valid API key starting with sk-ant-\n');
     return;
   }
   
   if (files.length === 0) {
-    updateStatus('Please select your photos first.', 'error');
+    appendStatus('Please select your photos first.\n');
     return;
   }
 
   document.getElementById('startBtn').disabled = true;
   fullCatalogue = "";
-  isRunning = true;
+  document.getElementById('status').textContent = '';
   
-  updateStatus(`Starting catalogue of ${files.length} photos...\n\n`);
+  appendStatus('Starting catalogue of ' + files.length + ' photos...\n\n');
   
   const batchSize = 5;
   const totalBatches = Math.ceil(files.length / batchSize);
@@ -75,28 +71,39 @@ async function startCataloguing() {
     const end = Math.min(start + batchSize, files.length);
     const batch = Array.from(files).slice(start, end);
     
-    appendStatus(`\n📸 Processing batch ${b + 1} of ${totalBatches} (photos ${start + 1}–${end})...\n`, 'progress');
+    appendStatus('\n📸 Processing batch ' + (b+1) + ' of ' + totalBatches + ' (photos ' + (start+1) + '–' + end + ')...\n');
     
-    try {
-      const result = await processBatch(batch, b + 1, totalBatches, apiKey);
-      fullCatalogue += result + "\n\n";
-      appendStatus(result + "\n", 'success');
-    } catch (err) {
-      appendStatus(`Error in batch ${b + 1}: ${err.message}\n`, 'error');
+    let success = false;
+    let attempts = 0;
+    
+    while (!success && attempts < 3) {
+      try {
+        const result = await processBatch(batch, b + 1, totalBatches, start + 1, apiKey);
+        fullCatalogue += result + "\n\n---\n\n";
+        appendStatus(result + "\n");
+        success = true;
+      } catch (err) {
+        attempts++;
+        if (attempts < 3) {
+          appendStatus('Retrying batch ' + (b+1) + ' (attempt ' + (attempts+1) + ')...\n');
+          await sleep(3000);
+        } else {
+          appendStatus('Error in batch ' + (b+1) + ': ' + err.message + '\n');
+        }
+      }
     }
     
-    // Small delay between batches to avoid rate limits
     if (b < totalBatches - 1) {
-      await sleep(2000);
+      await sleep(1500);
     }
   }
   
-  appendStatus("\n✅ CATALOGUE COMPLETE! Click Download to save it.", 'success');
+  appendStatus('\n✅ CATALOGUE COMPLETE! Click the Download button to save it.');
   document.getElementById('downloadBtn').style.display = 'inline-block';
   document.getElementById('startBtn').disabled = false;
 }
 
-async function processBatch(files, batchNum, totalBatches, apiKey) {
+async function processBatch(files, batchNum, totalBatches, startNum, apiKey) {
   const imageContents = await Promise.all(files.map(async (file) => {
     const base64 = await fileToBase64(file);
     const mediaType = file.type || 'image/jpeg';
@@ -112,15 +119,7 @@ async function processBatch(files, batchNum, totalBatches, apiKey) {
       ...imageContents,
       {
         type: "text",
-        text: `You are helping build a memorial constellation for Thomas, a beloved cat who passed away on May 25th 2025 at age 12. He was white and grey tabby with green-gold eyes, pink nose, black-tipped tail and paws. He was extremely affectionate, loved the sun, water, grooming, and was gentle with the family's young son. Please analyse each of the ${files.length} photos in this batch (batch ${batchNum} of ${totalBatches}) and for each one provide:
-- A number (continuing from previous batches if needed, starting at ${(batchNum-1)*5 + 1})
-- A brief title (5 words max)
-- What is shown in the photo (2-3 sentences)
-- Which star cluster it belongs to: THE EARLY YEARS / HIS PEOPLE / HIS SIMPLE JOYS / THE GENTLEMAN / KEY DATES / HIS SON / HIS QUIRKS
-- Emotional tone: tender / joyful / peaceful / playful / intimate / poignant
-- Whether it's a HERO photo (the most powerful, emotionally resonant images — be selective, max 1-2 per batch)
-
-Format each entry clearly with these labels. Be warm but concise.`
+        text: "You are helping build a memorial constellation for Thomas, a beloved cat who passed away on May 25th 2025 at age 12. He was a white and grey tabby with green-gold eyes, pink nose, black-tipped tail and paws. He was extremely affectionate, loved the sun, water, grooming, and was gentle with the family's young son. Please analyse each of the " + files.length + " photos in this batch (batch " + batchNum + " of " + totalBatches + ") and for each one provide:\n- Photo number (starting at " + startNum + ")\n- Title (5 words max)\n- Description (2-3 sentences of what is shown)\n- Star cluster: THE EARLY YEARS / HIS PEOPLE / HIS SIMPLE JOYS / THE GENTLEMAN / KEY DATES / HIS SON / HIS QUIRKS\n- Emotional tone: tender / joyful / peaceful / playful / intimate / poignant\n- HERO photo: yes or no (hero = most powerful, emotionally resonant — max 1-2 per batch)\n\nFormat each entry with these labels clearly. Be warm but concise."
       }
     ]
   }];
@@ -131,10 +130,10 @@ Format each entry clearly with these labels. Be warm but concise.`
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
-      "anthropic-beta": "messages-2023-12-15"
+      "anthropic-dangerous-direct-browser-access": "true"
     },
     body: JSON.stringify({
-      model: "claude-opus-4-5",
+      model: "claude-sonnet-4-6",
       max_tokens: 2000,
       messages: messages
     })
@@ -142,7 +141,7 @@ Format each entry clearly with these labels. Be warm but concise.`
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err.error?.message || `HTTP ${response.status}`);
+    throw new Error(err.error?.message || 'HTTP ' + response.status);
   }
 
   const data = await response.json();
@@ -158,13 +157,7 @@ function fileToBase64(file) {
   });
 }
 
-function updateStatus(msg, type) {
-  const el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = type || '';
-}
-
-function appendStatus(msg, type) {
+function appendStatus(msg) {
   const el = document.getElementById('status');
   el.textContent += msg;
   el.scrollTop = el.scrollHeight;
