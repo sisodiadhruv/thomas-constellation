@@ -2,179 +2,1381 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thomas's Photo Cataloguer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Thomas's Constellation</title>
+
+<!-- PWA / iPhone home screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Thomas">
+<meta name="theme-color" content="#050b1a">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+
 <style>
-  body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #0a0a2e; color: #fff; }
-  h1 { color: #a8d8ff; text-align: center; }
-  p { color: #ccc; text-align: center; }
-  .box { background: #111144; border: 2px dashed #a8d8ff; border-radius: 12px; padding: 30px; margin: 20px 0; text-align: center; }
-  input[type="text"] { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #a8d8ff; background: #0a0a2e; color: #fff; font-size: 14px; box-sizing: border-box; }
-  input[type="file"] { margin: 10px 0; color: #ccc; }
-  button { background: #a8d8ff; color: #0a0a2e; border: none; padding: 12px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px; }
-  button:disabled { background: #555; color: #999; cursor: not-allowed; }
-  #status { background: #111144; border-radius: 8px; padding: 20px; margin: 20px 0; min-height: 100px; white-space: pre-wrap; font-size: 13px; color: #ccc; border: 1px solid #333; max-height: 500px; overflow-y: auto; }
-  #downloadBtn { display: none; background: #4CAF50; color: white; }
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Cinzel:wght@400;500&display=swap');
+
+:root {
+  --sky-deep: #020810;
+  --sky-mid: #060d1f;
+  --sky-horizon: #0a1535;
+  --milky-way: rgba(180,170,255,0.06);
+  --nebula-purple: rgba(120,80,180,0.04);
+  --nebula-amber: rgba(200,140,60,0.03);
+  --star-white: #fff;
+  --gold: #f0c060;
+  --gold-glow: rgba(240,192,96,0.4);
+
+  --cluster-early: #a8c4e0;
+  --cluster-people: #e8a0b0;
+  --cluster-son: #b8d4a0;
+  --cluster-joys: #f0d080;
+  --cluster-gentleman: #c0b0e8;
+  --cluster-quirks: #f0a860;
+  --cluster-dates: #f0e0b0;
+
+  --card-bg: rgba(8,16,40,0.96);
+  --card-border: rgba(200,180,120,0.2);
+  --text-main: rgba(240,235,220,0.92);
+  --text-soft: rgba(200,190,170,0.7);
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Cormorant Garamond', serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  width:100%; height:100%;
+  overflow:hidden;
+  background: var(--sky-deep);
+  font-family: var(--font-body);
+  cursor: default;
+  touch-action: none;
+}
+
+/* ─── SKY CANVAS ─── */
+#sky {
+  position:fixed; inset:0;
+  background: radial-gradient(ellipse at 50% 110%, #0d2050 0%, #050c22 40%, #020810 100%);
+}
+
+#starCanvas {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+}
+
+/* Milky Way band */
+.milky-way {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 120% 30% at 60% 45%, rgba(160,140,220,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 20% at 35% 55%, rgba(180,160,240,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 15% at 75% 40%, rgba(200,180,255,0.04) 0%, transparent 40%);
+  transform: rotate(-25deg) scaleY(2);
+  pointer-events:none;
+}
+
+/* Nebula clouds */
+.nebula {
+  position:absolute; pointer-events:none; border-radius:50%;
+  filter: blur(40px); animation: nebulaDrift 30s ease-in-out infinite alternate;
+}
+.nebula-1 { width:400px; height:200px; top:15%; left:10%; background:rgba(100,60,160,0.05); animation-delay:0s; }
+.nebula-2 { width:300px; height:150px; top:40%; right:15%; background:rgba(60,40,120,0.04); animation-delay:-10s; }
+.nebula-3 { width:350px; height:180px; top:65%; left:30%; background:rgba(140,90,40,0.03); animation-delay:-20s; }
+.nebula-4 { width:250px; height:130px; top:25%; right:35%; background:rgba(80,50,130,0.04); animation-delay:-5s; }
+
+@keyframes nebulaDrift {
+  from { transform: translate(0,0) scale(1); opacity:0.6; }
+  to { transform: translate(30px,15px) scale(1.1); opacity:1; }
+}
+
+/* ─── THOMAS'S CONSTELLATION (cat shape) ─── */
+#catConstellation {
+  position:absolute;
+  pointer-events:none;
+  z-index:10;
+}
+
+/* ─── MEMORIAL STAR ─── */
+#memorialStar {
+  position:fixed;
+  z-index:20;
+  top: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align:center;
+  pointer-events:none;
+}
+.memorial-glow {
+  width:16px; height:16px;
+  background: var(--gold);
+  border-radius:50%;
+  box-shadow:
+    0 0 8px 4px rgba(240,192,96,0.8),
+    0 0 20px 8px rgba(240,192,96,0.4),
+    0 0 50px 20px rgba(240,192,96,0.15);
+  animation: memorialPulse 3s ease-in-out infinite;
+  margin: 0 auto 6px;
+}
+.memorial-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(240,200,100,0.7);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+@keyframes memorialPulse {
+  0%,100% { box-shadow: 0 0 8px 4px rgba(240,192,96,0.8), 0 0 20px 8px rgba(240,192,96,0.4), 0 0 50px 20px rgba(240,192,96,0.15); }
+  50% { box-shadow: 0 0 12px 6px rgba(240,200,120,0.9), 0 0 30px 12px rgba(240,192,96,0.5), 0 0 70px 28px rgba(240,192,96,0.2); }
+}
+
+/* ─── SHOOTING STAR ─── */
+.shooting-star {
+  position:fixed;
+  width:120px; height:1px;
+  background: linear-gradient(90deg, transparent, white, transparent);
+  opacity:0;
+  z-index:15;
+  pointer-events:none;
+  animation: shoot 4s ease-in-out;
+}
+@keyframes shoot {
+  0% { opacity:0; transform: translateX(0) translateY(0); }
+  10% { opacity:1; }
+  90% { opacity:0.3; }
+  100% { opacity:0; transform: translateX(300px) translateY(120px); }
+}
+
+/* ─── HEADER ─── */
+#header {
+  position:fixed; top:0; left:0; right:0;
+  z-index:50;
+  padding: 18px 24px 18px;
+  background: linear-gradient(to bottom, rgba(2,8,16,0.9) 0%, transparent 100%);
+  text-align:center;
+  pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; gap:9px;
+}
+#header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(15px, 4vw, 20px);
+  letter-spacing: 0.35em;
+  color: rgba(240,220,160,0.85);
+  font-weight:400;
+  text-transform: uppercase;
+  line-height:1;
+}
+#header p {
+  font-family: var(--font-body);
+  font-size: clamp(12px, 3vw, 14px);
+  color: rgba(180,165,140,0.5);
+  letter-spacing: 0.15em;
+  font-style:italic;
+  line-height:1;
+}
+
+/* ─── CLUSTER LEGEND ─── */
+#legend {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  z-index:50;
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+  padding: 0 16px;
+  pointer-events:none;
+  opacity:0;
+  animation: fadeIn 2s 3s forwards;
+}
+@keyframes fadeIn { to { opacity:1; } }
+
+.legend-item {
+  display:flex; align-items:center; gap:5px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing:0.12em;
+  color:rgba(200,190,170,0.55);
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.legend-dot {
+  width:5px; height:5px; border-radius:50%;
+  flex-shrink:0;
+}
+
+/* ─── STAR CARD ─── */
+#cardOverlay {
+  position:fixed; inset:0;
+  z-index:100;
+  display:none;
+  align-items:center; justify-content:center;
+  padding:16px;
+  background:rgba(2,6,18,0.85);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  animation: overlayIn 0.3s ease;
+}
+#cardOverlay.active { display:flex; }
+@keyframes overlayIn {
+  from { opacity:0; } to { opacity:1; }
+}
+
+#starCard {
+  width:100%; max-width:420px;
+  max-height:90vh;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 3px;
+  overflow:hidden;
+  display:flex; flex-direction:column;
+  animation: cardIn 0.4s cubic-bezier(0.2,0.9,0.4,1);
+}
+@keyframes cardIn {
+  from { opacity:0; transform:scale(0.92) translateY(20px); }
+  to { opacity:1; transform:scale(1) translateY(0); }
+}
+
+#cardPhoto {
+  width:100%;
+  aspect-ratio:4/3;
+  object-fit:cover;
+  display:block;
+  background:#08102a;
+  flex-shrink:0;
+}
+#cardPhotoPlaceholder {
+  width:100%;
+  aspect-ratio:4/3;
+  background: linear-gradient(135deg, #08102a 0%, #0d1a3a 100%);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+#cardPhotoPlaceholder svg { opacity:0.2; }
+
+#cardBody {
+  padding: 22px 24px 28px;
+  overflow-y:auto;
+  flex:1;
+  scrollbar-width:thin;
+  scrollbar-color: rgba(200,180,120,0.2) transparent;
+}
+
+.card-cluster {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing:0.25em;
+  color:rgba(200,180,120,0.5);
+  text-transform:uppercase;
+  margin-bottom:10px;
+  display:flex; align-items:center; gap:8px;
+}
+.card-cluster-dot {
+  width:5px; height:5px; border-radius:50%;
+  flex-shrink:0;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: clamp(17px, 4.5vw, 22px);
+  color:rgba(240,225,190,0.95);
+  font-weight:400;
+  letter-spacing:0.05em;
+  margin-bottom:14px;
+  line-height:1.3;
+}
+
+.card-hero-shimmer {
+  display:inline-block;
+  color:var(--gold);
+  margin-left:6px;
+  animation:shimmer 2s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%,100% { opacity:1; } 50% { opacity:0.4; }
+}
+
+.card-story {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 4vw, 18px);
+  color: var(--text-main);
+  line-height:1.85;
+  font-weight:300;
+}
+
+.card-tone {
+  margin-top:16px;
+  font-family: var(--font-body);
+  font-size:13px;
+  font-style:italic;
+  color:rgba(180,165,140,0.45);
+  letter-spacing:0.08em;
+}
+
+#cardClose {
+  position:absolute;
+  top:12px; right:12px;
+  width:32px; height:32px;
+  border:1px solid rgba(200,180,120,0.2);
+  background:rgba(8,16,40,0.8);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  color:rgba(200,190,170,0.6);
+  font-size:16px;
+  z-index:110;
+  transition:all 0.2s;
+}
+#cardClose:hover { border-color:rgba(240,192,96,0.5); color:var(--gold); }
+
+/* ─── INTRO OVERLAY ─── */
+#intro {
+  position:fixed; inset:0; z-index:200;
+  background:var(--sky-deep);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 30px;
+  text-align:center;
+  transition:opacity 1.5s ease;
+}
+#intro.hidden { opacity:0; pointer-events:none; }
+
+.intro-paw {
+  font-size:32px;
+  margin-bottom:24px;
+  animation:pawFloat 3s ease-in-out infinite;
+}
+@keyframes pawFloat {
+  0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); }
+}
+
+.intro-title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 7vw, 34px);
+  color:rgba(240,220,160,0.9);
+  letter-spacing:0.3em;
+  font-weight:400;
+  text-transform:uppercase;
+  margin-bottom:16px;
+}
+.intro-dates {
+  font-family: var(--font-body);
+  font-size: clamp(14px, 3.5vw, 17px);
+  color:rgba(180,165,140,0.6);
+  letter-spacing:0.15em;
+  font-style:italic;
+  margin-bottom:28px;
+}
+.intro-text {
+  font-family: var(--font-body);
+  font-size: clamp(15px, 4vw, 18px);
+  color:rgba(200,190,170,0.75);
+  line-height:1.9;
+  max-width:360px;
+  margin-bottom:36px;
+  font-weight:300;
+}
+.intro-btn {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing:0.3em;
+  text-transform:uppercase;
+  color:rgba(240,200,100,0.8);
+  border:1px solid rgba(240,200,100,0.3);
+  padding:12px 28px;
+  background:transparent;
+  cursor:pointer;
+  transition:all 0.3s;
+  border-radius:1px;
+}
+.intro-btn:hover { background:rgba(240,200,100,0.08); border-color:rgba(240,200,100,0.6); }
+
+/* ─── TOUCH STAR INDICATOR ─── */
+.star-touch-ring {
+  position:absolute;
+  width:24px; height:24px;
+  border:1px solid rgba(255,255,255,0.3);
+  border-radius:50%;
+  transform:translate(-50%,-50%) scale(0);
+  pointer-events:none;
+  animation:touchRing 0.6s ease-out forwards;
+}
+@keyframes touchRing {
+  0% { transform:translate(-50%,-50%) scale(0); opacity:1; }
+  100% { transform:translate(-50%,-50%) scale(2); opacity:0; }
+}
 </style>
 </head>
 <body>
 
-<h1>⭐ Thomas's Photo Cataloguer ⭐</h1>
-<p>This tool will analyse all of Thomas's photos and build a complete catalogue for the constellation.</p>
-
-<div class="box">
-  <label>Step 1 — Enter your Anthropic API Key</label><br>
-  <input type="text" id="apiKey" placeholder="sk-ant-..." />
+<!-- INTRO -->
+<div id="intro">
+  <div class="intro-paw">🐾</div>
+  <div class="intro-title">Thomas's Constellation</div>
+  <div class="intro-dates">August 11, 2013 — May 25, 2026</div>
+  <p class="intro-text">
+    He arrived frightened and small, and left having filled every room he entered with quiet grace. Here, among the stars, every photograph — every moment — becomes a point of light in the sky he now travels through. He is not gone. He is moving.
+  </p>
+  <button class="intro-btn" onclick="enterConstellation()">Open the Sky</button>
 </div>
 
-<div class="box">
-  <label>Step 2 — Select all of Thomas's photos</label><br>
-  <input type="file" id="photoInput" accept="image/*" multiple /><br>
-  <small style="color:#999">You can select all 284 photos at once</small>
+<!-- SKY -->
+<div id="sky">
+  <div class="milky-way"></div>
+  <div class="nebula nebula-1"></div>
+  <div class="nebula nebula-2"></div>
+  <div class="nebula nebula-3"></div>
+  <div class="nebula nebula-4"></div>
+  <canvas id="starCanvas"></canvas>
+  <svg id="catConstellation" xmlns="http://www.w3.org/2000/svg"></svg>
 </div>
 
-<div class="box">
-  <button id="startBtn" onclick="startCataloguing()">✨ Start Cataloguing</button>
-  <button id="downloadBtn" onclick="downloadCatalogue()">⬇️ Download Catalogue</button>
+<!-- MEMORIAL STAR -->
+<div id="memorialStar">
+  <div class="memorial-glow"></div>
+  <div class="memorial-label">May 25, 2026 · 10:15am</div>
 </div>
 
-<div id="status">Waiting to start...</div>
+<!-- HEADER -->
+<div id="header">
+  <h1>Thomas's Constellation</h1>
+  <p>Every star is a moment. Every moment is still here.</p>
+</div>
+
+<!-- LEGEND -->
+<div id="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-early)"></div>Early Years</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-people)"></div>His People</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-son)"></div>His Son</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-joys)"></div>Simple Joys</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-gentleman)"></div>The Gentleman</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-quirks)"></div>His Quirks</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-dates)"></div>Key Dates</div>
+</div>
+
+<!-- CARD OVERLAY -->
+<div id="cardOverlay" onclick="closeCard(event)">
+  <button id="cardClose" onclick="closeCard()">✕</button>
+  <div id="starCard">
+    <img id="cardPhoto" src="" alt="" onerror="this.style.display='none';document.getElementById('cardPhotoPlaceholder').style.display='flex'">
+    <div id="cardPhotoPlaceholder" style="display:none">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,180,120,0.5)" stroke-width="1">
+        <circle cx="12" cy="12" r="10"/><path d="M8 9l1-1 1 1M14 9l1-1 1 1M8.5 14s1 2 3.5 2 3.5-2 3.5-2"/>
+        <path d="M6 7l-2-2M18 7l2-2"/>
+      </svg>
+    </div>
+    <div id="cardBody">
+      <div class="card-cluster">
+        <div class="card-cluster-dot" id="cardClusterDot"></div>
+        <span id="cardClusterName"></span>
+      </div>
+      <div class="card-title" id="cardTitle"></div>
+      <div class="card-story" id="cardStory"></div>
+      <div class="card-tone" id="cardTone"></div>
+    </div>
+  </div>
+</div>
 
 <script>
-let fullCatalogue = "";
+// ─────────────────────────────────────────────
+// PHOTO DATA — all 255 photos from catalogue
+// ─────────────────────────────────────────────
+const GITHUB_BASE = 'https://sisodiadhruv.github.io/thomas-constellation/photos/';
 
-async function startCataloguing() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  const files = document.getElementById('photoInput').files;
-  
-  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-    appendStatus('Please enter a valid API key starting with sk-ant-\n');
-    return;
-  }
-  
-  if (files.length === 0) {
-    appendStatus('Please select your photos first.\n');
-    return;
-  }
+const PHOTO_MAP = {
+  "1": "IMG_8699.JPG",
+  "2": "IMG_5517.JPG",
+  "3": "ae7dcac2-96d6-4d11-8478-fc8422f8e0c6.JPG",
+  "4": "IMG_5924.JPG",
+  "5": "4ff991f1-3c77-447f-af3b-60c9175f6d12.JPG",
+  "6": "IMG_0524.JPG",
+  "7": "IMG_2951.JPG",
+  "8": "d613a675-63f3-4bed-b1ff-5419ff4baa37.JPG",
+  "9": "IMG_4619.JPG",
+  "10": "4ff991f1-3c77-447f-af3b-60c9175f6d12.JPG",
+  "11": "IMG_6291.JPG",
+  "12": "eb19de3d-eff5-4d85-9652-12d76365b32c.JPG",
+  "13": "IMG_0381.JPG",
+  "14": "7c1aaf77-4d76-4ab2-99b0-cdb16f960f56.JPG",
+  "15": "7d89af15-db3f-4539-a1fe-50156b930828.JPG",
+  "16": "8A495C5A-7A97-45F2-B72D-C25209FFB520.JPG",
+  "17": "08b6b420-12ed-4e6e-810e-8fca949bac70.JPG",
+  "18": "IMG_8447.JPG",
+  "19": "9EB93C96-D4CA-4BEB-AA8F-40DA0224FF50.JPG",
+  "20": "22fe24ad-b270-47ac-98b9-c09b61c434dc.JPG",
+  "21": "e9a7ed8c-e244-4000-b6fe-5a6812709f5b.JPG",
+  "22": "IMG_3222.JPG",
+  "23": "63d7134a-0cda-49aa-87fb-da3d324960c1.JPG",
+  "24": "IMG_0361.JPG",
+  "25": "268966c8-6f99-4f32-978c-a9b8bf5aa31e.JPG",
+  "26": "85e4237e-38e0-40b9-bc05-86c5fceb83bc.JPG",
+  "27": "89b261c0-85aa-4255-b987-bd5b2d523a6c.JPG",
+  "28": "93f2c50e-481e-42c8-957c-90d91cd8d6f3.JPG",
+  "29": "93f2c50e-481e-42c8-957c-90d91cd8d6f3.JPG",
+  "30": "96D3C8D5-583C-4657-B54C-6FF012D97606.JPG",
+  "31": "99b91a06-9416-4ad0-aecc-cd3924c4c210.JPG",
+  "32": "103d872f-4fa0-4f5b-8085-bd0810cd264f.JPG",
+  "33": "204eb8b7-b7e7-438d-8bd1-3ace01f77ade.JPG",
+  "35": "382ddc05-281b-4a5c-a553-3f4305179584.JPG",
+  "36": "772a696a-58f9-4093-9c1a-31168a0f5d2b.JPG",
+  "37": "IMG_9866.JPG",
+  "38": "d9982ddd-b0d0-4817-b026-59b526691eb2.JPG",
+  "39": "IMG_3258.JPG",
+  "40": "7214fedd-446a-4117-a94c-a66f21f03232.JPG",
+  "41": "e1cfba87-5829-47ed-bf3a-013f70d1fc96.JPG",
+  "42": "8314c64d-9d67-483c-915d-348b6c54a42e.JPG",
+  "43": "9581f748-35f2-4ed5-a799-374a78ee0dd6.JPG",
+  "44": "IMG_4960.JPG",
+  "45": "44990ed3-0362-40a8-83d7-1593db0402cb.JPG",
+  "46": "e9a01574-a957-45e3-be68-1e1f6a539d59.JPG",
+  "47": "268966c8-6f99-4f32-978c-a9b8bf5aa31e.JPG",
+  "48": "552373d5-0fa5-42e0-b1e5-b3a9089180d0.JPG",
+  "49": "IMG_8397.JPG",
+  "50": "50649288-7719-4f10-9ead-646a902551a3.JPG",
+  "51": "a9e5771b-9e8f-44f9-bbd3-50d602223bd5.JPG",
+  "52": "a9e5771b-9e8f-44f9-bbd3-50d602223bd5.JPG",
+  "53": "a62cc65c-72e2-4c0f-ae85-7d888cd94bbf.JPG",
+  "54": "aaff0cb3-f4cd-4c8d-abe7-3f0582b3c583.JPG",
+  "55": "ae7dcac2-96d6-4d11-8478-fc8422f8e0c6.JPG",
+  "56": "aeee83d2-1a98-4362-87d0-bbf24b7c5656.JPG",
+  "57": "b1a34d91-478f-4718-bcf9-a7a6e2932531.JPG",
+  "58": "b9a118fb-7f4e-4cb6-85e9-590b84dcad53.JPG",
+  "59": "b29ddbb7-3932-433e-aaec-dd89fcd2a42f.JPG",
+  "60": "c4e1ef3a-bb31-46c3-8268-1d86c98b8355.JPG",
+  "61": "cbb4609e-940b-482b-9133-c97050cc3124.JPG",
+  "62": "cc562fac-9652-4e2e-bfde-a3c052f7e319.JPG",
+  "63": "D4F38DA7-1922-46C1-9464-431C00B58996.JPG",
+  "64": "d50da92c-2072-4e04-b2b8-621f6b517836.JPG",
+  "65": "d613a675-63f3-4bed-b1ff-5419ff4baa37.JPG",
+  "66": "d9982ddd-b0d0-4817-b026-59b526691eb2.JPG",
+  "67": "dbc344b0-eb1a-444c-87e5-7c969d64326b.JPG",
+  "68": "e1cfba87-5829-47ed-bf3a-013f70d1fc96.JPG",
+  "69": "f0469e29-b135-43f2-b981-406c26a78747.JPG",
+  "70": "e9a7ed8c-e244-4000-b6fe-5a6812709f5b.JPG",
+  "71": "e9a01574-a957-45e3-be68-1e1f6a539d59.JPG",
+  "72": "E82F807D-DC9D-4FA5-8F1A-F3BF5FCCA8C3.JPG",
+  "73": "ea94a511-2176-4646-8f4d-42eeb956d6bf.JPG",
+  "74": "eb19de3d-eff5-4d85-9652-12d76365b32c.JPG",
+  "75": "eb5118d8-8c6a-404d-bcab-9a54cd1c9cc5.JPG",
+  "76": "f86c49ce-1c2b-441c-a965-9975964c48f4.jpg",
+  "77": "f0469e29-b135-43f2-b981-406c26a78747.JPG",
+  "78": "fa72b958-423b-4828-b0b2-9d9c9daaca68.JPG",
+  "79": "ff7db1a6-067f-430b-a0af-a86bc0c96f19.JPG",
+  "80": "ffce2572-b5b0-416a-a135-f4967a5e8c61.JPG",
+  "81": "FullSizeRender.JPG",
+  "82": "IMG_0022.JPG",
+  "83": "IMG_0067.JPG",
+  "84": "IMG_0065.JPG",
+  "85": "IMG_0067.JPG",
+  "86": "IMG_0078.JPG",
+  "87": "IMG_0080.JPG",
+  "88": "IMG_0081.JPG",
+  "89": "IMG_4151.JPG",
+  "90": "IMG_0213.JPG",
+  "91": "IMG_9859.JPG",
+  "92": "IMG_2091.JPG",
+  "93": "IMG_0272.JPG",
+  "94": "IMG_0276.JPG",
+  "95": "IMG_0312.JPG",
+  "96": "IMG_0311.JPG",
+  "97": "IMG_0353.JPG",
+  "98": "IMG_0353.JPG",
+  "99": "IMG_0354.JPG",
+  "100": "IMG_0361.JPG",
+  "101": "IMG_0366.JPG",
+  "102": "IMG_1432.JPG",
+  "103": "IMG_6016.JPG",
+  "104": "IMG_0468.JPG",
+  "105": "IMG_0524.JPG",
+  "106": "IMG_9471.JPG",
+  "107": "IMG_0574.JPG",
+  "108": "IMG_0582.JPG",
+  "110": "IMG_0596.JPG",
+  "111": "IMG_0634.JPG",
+  "112": "IMG_0771.JPG",
+  "113": "IMG_0778.JPG",
+  "114": "IMG_0838.JPG",
+  "115": "IMG_0847.JPG",
+  "116": "IMG_0854.JPG",
+  "117": "IMG_0858.JPG",
+  "118": "IMG_0857.JPG",
+  "119": "IMG_0862.JPG",
+  "120": "IMG_0864.JPG",
+  "121": "IMG_0971.JPG",
+  "122": "IMG_1011(2).JPG",
+  "123": "IMG_1011(1).JPG",
+  "124": "IMG_1011.JPG",
+  "125": "IMG_1011.JPG",
+  "131": "IMG_1448.JPG",
+  "132": "IMG_1489.JPG",
+  "133": "IMG_1507.JPG",
+  "134": "IMG_1518.JPG",
+  "135": "IMG_1658.JPG",
+  "136": "IMG_1690.JPG",
+  "137": "IMG_1948.JPG",
+  "138": "IMG_1978.JPG",
+  "139": "IMG_2022.JPG",
+  "140": "IMG_2091.JPG",
+  "141": "IMG_2092.JPG",
+  "142": "IMG_2194.JPG",
+  "143": "IMG_2192.JPG",
+  "144": "IMG_2194.JPG",
+  "145": "IMG_2211.JPG",
+  "146": "IMG_2211.JPG",
+  "147": "IMG_2445.JPG",
+  "148": "IMG_2445.JPG",
+  "149": "IMG_2447.JPG",
+  "150": "IMG_2390.JPG",
+  "151": "IMG_2681.JPG",
+  "152": "IMG_2755.JPG",
+  "153": "IMG_2839.JPG",
+  "154": "IMG_2841.JPG",
+  "155": "IMG_2880.JPG",
+  "161": "IMG_9339.JPG",
+  "162": "IMG_6238.JPG",
+  "163": "IMG_3076.JPG",
+  "164": "IMG_3080.JPG",
+  "165": "IMG_3081.JPG",
+  "166": "IMG_3591.JPG",
+  "167": "IMG_3258.JPG",
+  "168": "IMG_3452.JPG",
+  "169": "IMG_3711.JPG",
+  "170": "IMG_4621.JPG",
+  "171": "IMG_3637.JPG",
+  "172": "IMG_4707.JPG",
+  "173": "IMG_3802.jpg",
+  "174": "IMG_3890.JPG",
+  "175": "IMG_3918.JPG",
+  "176": "IMG_4134.JPG",
+  "177": "IMG_4134(1).JPG",
+  "178": "IMG_4145.JPG",
+  "179": "IMG_4145.JPG",
+  "180": "IMG_4151.JPG",
+  "181": "IMG_4170.JPG",
+  "182": "IMG_4181.JPG",
+  "183": "IMG_4213.JPG",
+  "184": "IMG_4291.JPG",
+  "185": "IMG_4422.JPG",
+  "186": "IMG_5116.JPG",
+  "187": "IMG_4426.JPG",
+  "188": "IMG_4619.JPG",
+  "189": "IMG_1137.JPG",
+  "190": "IMG_4706.JPG",
+  "191": "IMG_4707.JPG",
+  "192": "IMG_4792.JPG",
+  "193": "IMG_4792.JPG",
+  "194": "IMG_4799.JPG",
+  "195": "IMG_4805.JPG",
+  "196": "IMG_4820.JPG",
+  "197": "IMG_5273.JPG",
+  "198": "IMG_4960.JPG",
+  "199": "IMG_5005.JPG",
+  "200": "IMG_5070.JPG",
+  "206": "IMG_5437.JPG",
+  "207": "IMG_5437.JPG",
+  "208": "IMG_5459.JPG",
+  "209": "IMG_5517.JPG",
+  "210": "IMG_5658.JPG",
+  "211": "IMG_5675.JPG",
+  "212": "IMG_5677.JPG",
+  "213": "IMG_5677.JPG",
+  "214": "IMG_5695.JPG",
+  "215": "IMG_5817.JPG",
+  "216": "IMG_5921.JPG",
+  "217": "IMG_5922.JPG",
+  "218": "IMG_5920.JPG",
+  "219": "IMG_5923.JPG",
+  "220": "IMG_5924.JPG",
+  "221": "IMG_9954.JPG",
+  "222": "IMG_6016.JPG",
+  "223": "IMG_6062.JPG",
+  "224": "IMG_6092.JPG",
+  "225": "IMG_6088.JPG",
+  "226": "IMG_6135.JPG",
+  "227": "IMG_6163.JPG",
+  "228": "IMG_6186.JPG",
+  "229": "IMG_6238.JPG",
+  "230": "IMG_6237.JPG",
+  "231": "IMG_6291.JPG",
+  "232": "IMG_6429.JPG",
+  "233": "IMG_7239.JPG",
+  "234": "IMG_7426.JPG",
+  "235": "IMG_7573.JPG",
+  "236": "IMG_7674.JPG",
+  "237": "IMG_8380.JPG",
+  "238": "IMG_1948.JPG",
+  "239": "IMG_8447.JPG",
+  "240": "IMG_1658.JPG",
+  "241": "cbb4609e-940b-482b-9133-c97050cc3124.JPG",
+  "242": "IMG_8806.JPG",
+  "243": "IMG_9836.JPG",
+  "244": "IMG_8867.JPG",
+  "245": "IMG_9301.JPG",
+  "251": "IMG_9836.JPG",
+  "252": "IMG_9836.JPG",
+  "253": "IMG_5459.JPG",
+  "254": "IMG_0468.JPG",
+  "255": "IMG_9866.JPG"
+};
 
-  document.getElementById('startBtn').disabled = true;
-  fullCatalogue = "";
-  document.getElementById('status').textContent = '';
-  
-  appendStatus('Starting catalogue of ' + files.length + ' photos...\n\n');
-  
-  const batchSize = 5;
-  const totalBatches = Math.ceil(files.length / batchSize);
-  
-  for (let b = 0; b < totalBatches; b++) {
-    const start = b * batchSize;
-    const end = Math.min(start + batchSize, files.length);
-    const batch = Array.from(files).slice(start, end);
-    
-    appendStatus('\n📸 Processing batch ' + (b+1) + ' of ' + totalBatches + ' (photos ' + (start+1) + '–' + end + ')...\n');
-    
-    let success = false;
-    let attempts = 0;
-    
-    while (!success && attempts < 3) {
-      try {
-        const result = await processBatch(batch, b + 1, totalBatches, start + 1, apiKey);
-        fullCatalogue += result + "\n\n---\n\n";
-        appendStatus(result + "\n");
-        success = true;
-      } catch (err) {
-        attempts++;
-        if (attempts < 3) {
-          appendStatus('Retrying batch ' + (b+1) + ' (attempt ' + (attempts+1) + ')...\n');
-          await sleep(3000);
-        } else {
-          appendStatus('Error in batch ' + (b+1) + ': ' + err.message + '\n');
-        }
-      }
-    }
-    
-    if (b < totalBatches - 1) {
-      await sleep(1500);
-    }
-  }
-  
-  appendStatus('\n✅ CATALOGUE COMPLETE! Click the Download button to save it.');
-  document.getElementById('downloadBtn').style.display = 'inline-block';
-  document.getElementById('startBtn').disabled = false;
+
+const CLUSTERS = {
+  'EARLY': { name: 'The Early Years', color: '#a8c4e0', symbol: '🌙' },
+  'PEOPLE': { name: 'His People', color: '#e8a0b0', symbol: '♥' },
+  'SON': { name: 'His Son Tai', color: '#b8d4a0', symbol: '✦' },
+  'JOYS': { name: 'His Simple Joys', color: '#f0d080', symbol: '☀' },
+  'GENTLEMAN': { name: 'The Gentleman', color: '#c0b0e8', symbol: '◈' },
+  'QUIRKS': { name: 'His Quirks', color: '#f0a860', symbol: '✿' },
+  'DATES': { name: 'Key Dates', color: '#f0e0b0', symbol: '★' },
+};
+
+const photos = [
+{id:1,title:"Sunlit Morning Sentinel",cluster:"GENTLEMAN",hero:true,tone:"Peaceful",story:"This is how mornings tended to begin in Thomas's kingdom — he already there, already watching, already sure of his place in the world. His white chest caught the light first, then his green-gold eyes, and then you understood that you had not woken early at all. He had simply decided it was time."},
+{id:2,title:"Christmas Ornaments, Unimpressed",cluster:"JOYS",hero:false,tone:"Joyful",story:"Every year without fail, Thomas presided over the Christmas decorations with the measured enthusiasm of a senior consultant reviewing a junior's work. He had opinions. He kept them largely to himself. But he was always there, and the tree somehow never felt quite right until he had made his rounds."},
+{id:3,title:"Softly Resting, Almost Dreaming",cluster:"JOYS",hero:false,tone:"Tender",story:"There was a particular quality to Thomas asleep — a completeness to his surrender that seemed to say: here is a creature who has made his peace with everything. The paws tucked just so. The breathing barely visible. He slept the way people hope to sleep and rarely do."},
+{id:4,title:"Lord of the Carpet",cluster:"GENTLEMAN",hero:false,tone:"Intimate",story:"He did not need to perform authority. He simply sat, and the room acknowledged him. The cat tree behind him like a throne room backdrop, the rug beneath him like a sigil, and Thomas himself — ears forward, tail curved, entirely certain of his dominion."},
+{id:5,title:"Caught Mid-Conversation",cluster:"QUIRKS",hero:true,tone:"Playful",story:"When Thomas had something to say, he said it. Mouth open, tail raised, one eye catching the light like an exclamation mark — this was Thomas at full volume. What he was communicating so urgently has been lost to time. But whoever was on the receiving end knew they were being spoken to, not at."},
+{id:6,title:"Watchful Loaf on Sofa",cluster:"JOYS",hero:false,tone:"Peaceful",story:"The loaf position was one of Thomas's great gifts — a shape that communicated contentment, readiness, and mild superiority all at once. He was at rest. He was also available, should anything interesting develop. This was his version of a quiet afternoon."},
+{id:7,title:"Curled Beside Cat Pillow",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"He chose the spot beside the cat-print cushion with what can only have been irony. Thomas curled among illustrated cats, the real thing surrounded by his printed cousins — and somehow more dignified than all of them combined."},
+{id:8,title:"Sleeping on Beloved Lap",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"The white belly fully exposed. The body entirely limp with trust. This was Thomas saying something he couldn't say in words — something about safety, about belonging, about choosing someone so completely that sleep itself becomes a shared act. He slept this way because he had found his people and was sure of them."},
+{id:9,title:"Hidden Face, Soft Paws",cluster:"GENTLEMAN",hero:false,tone:"Tender",story:"There was something deeply private about Thomas face-down and folded into himself, his pink pads visible, the world temporarily set aside. He was not hiding. He was simply, for a moment, not available. A gentleman is entitled to his solitude."},
+{id:10,title:"Strutting With Tongue Out",cluster:"QUIRKS",hero:true,tone:"Playful",story:"Tongue out, tail up, one paw mid-stride — Thomas in motion was Thomas fully alive. He crossed a room with the confidence of someone who had already been everywhere and found it mostly satisfactory. The tongue was not undignified. It was emphatic."},
+{id:11,title:"Chin Rest on the Book Stand",cluster:"QUIRKS",hero:true,tone:"Playful",story:"He found the book stand, assessed its architectural potential, and installed himself accordingly. The slight tilt of his head suggests he was both using it and judging it — as though the book stand had had the good fortune of becoming Thomas's furniture, and he wanted it to know that."},
+{id:12,title:"Tucked Between Two Legs",cluster:"PEOPLE",hero:false,tone:"Intimate",story:"Not beside them. Between them. Thomas had no interest in proximity when belonging was available. He needed to be within the warmth of his people, folded into the space they made for him, and the blue sheets rustled very gently with every breath he took."},
+{id:13,title:"Sleeping With His Girl",cluster:"PEOPLE",hero:true,tone:"Tender",story:"In the amber lamplight, draped across Kaiying like he had always been there and always would be — this was Thomas and his first person. She had spoken to him every day for two weeks while he hid under the bed. He never forgot. He kept finding his way back to her chest."},
+{id:14,title:"King of the Cat Tower",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Thomas had the remarkable ability to make any enclosed space look like it had been designed specifically for him. The cubby in the cat tower. The space between the slats. His face framed there like a portrait that had always needed painting. Cosy and imperious in equal measure."},
+{id:15,title:"The Anime Thomas",cluster:"GENTLEMAN",hero:false,tone:"Poignant",story:"Memory does what art does — it distills. This rendering captures the black-tipped tail raised, the green eyes wide and wondering, the quality of attentiveness that was uniquely Thomas. Some truths about a person only become visible when you try to render them in a different medium."},
+{id:16,title:"The Serious Music Student",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Thomas approached the piano with the gravity it deserved. Nose tipped to the Chopin score, posture impeccable — he gave the impression of a cat who had heard something in the music he wanted to understand better. Dhruv and Kaiying never discouraged him. How could they?"},
+{id:17,title:"Teaching His Boy Kindness",cluster:"SON",hero:true,tone:"Tender",story:"The patience Thomas showed Tai was never performed — it was simply who he was. He leaned in carefully as the small hands offered the treat, those luminous eyes calm and open. He understood, somehow, that Tai was learning. That this moment was about more than food. He held still and let the boy feel brave."},
+{id:18,title:"Sleeping On His Human",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Curled on a chest, being stroked, eyes softly closed — this was Thomas's idea of a complete life. He chose Dhruv. From that first evening when he jumped onto the empty chair and pressed his nose into it, he had chosen him. And he kept choosing him, every night, every morning, for nine years."},
+{id:19,title:"Dreaming In Warm Light",cluster:"JOYS",hero:false,tone:"Peaceful",story:"He lay in the television glow while the house settled into night, legs extended, eyes entirely closed, the amber light making his white fur luminous. During COVID, Thomas led the way every evening — first to the bedroom, first onto the bed, first asleep. He set the rhythm and they all followed."},
+{id:20,title:"The Watchful Gentleman",cluster:"GENTLEMAN",hero:false,tone:"Poignant",story:"Even rendered in another artist's hand, those eyes are unmistakably his. The calm intelligence. The sense that he was presiding over something rather than simply existing within it. Thomas watched over a busy household with authority that needed no enforcement. He was simply present, and that was enough."},
+{id:21,title:"Hungry Boy at the Bowl",cluster:"JOYS",hero:false,tone:"Playful",story:"The murmuring sound he made when called for dinner — a soft, particular sound that was neither meow nor purr but something entirely Thomas — accompanied exactly this posture. Tail up, eyes down, the dignified urgency of a cat who knew what he wanted and knew it would come. It always did."},
+{id:22,title:"Claimed the Bed Already",cluster:"PEOPLE",hero:false,tone:"Peaceful",story:"The laptop open nearby, the bedroom warm, and Thomas installed in his cat bed between the pillows as though he had been there since the beginning. He made the domestic landscape of their life more complete simply by being in it. Close, always. Watchful. Present."},
+{id:23,title:"Caught Mid-Lick",cluster:"GENTLEMAN",hero:false,tone:"Playful",story:"Thomas kept himself extremely clean. It was a matter of principle. He groomed with the focused attention of someone for whom appearance was not vanity but dignity — and if occasionally someone caught him mid-lick, he bore it with characteristic equanimity. The green eyes steady. The tongue halfway."},
+{id:24,title:"King of His Throne",cluster:"GENTLEMAN",hero:true,tone:"Tender",story:"He filled the round bed completely. That was the first thing. Then the calm gaze, the perfect curl, the sense that this piece of furniture had been waiting for him since it was made. Thomas did not sit in things. He inhabited them. There is a difference, and he always understood it."},
+{id:25,title:"Supervising the Human's Dinner",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Thomas had opinions about what was being eaten and whether he should have been consulted. He expressed these opinions through proximity and expression — the wide eyes peering over the table's edge, the pink nose pointing toward the noodles, the posture of polite but absolute interest. He was always welcome at the table. He knew it."},
+{id:26,title:"Anime Thomas, Forever Resting",cluster:"QUIRKS",hero:false,tone:"Intimate",story:"The sleeping positions Thomas achieved between people's legs were architectural in their precision. Nestled just so, tucked exactly right — not merely resting beside his people but resting within them, claimed by the warmth of their bodies, completely at peace in the space they made."},
+{id:27,title:"Curled With Something Small",cluster:"QUIRKS",hero:false,tone:"Tender",story:"Whatever small thing he had claimed and drawn under his chin, he held it with the same quiet tenderness he held everything he loved. Eyes closed, paws curved, the world reduced to this one small warmth. Thomas had a gift for making tiny things feel important. Perhaps because he understood they were."},
+{id:28,title:"Mama's Boy, Always",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Kaiying was always his first person. She had sat beside his hiding place under the bed for two weeks, speaking softly to a frightened boy until he came out. And here on the pink bedcover, those calm knowing eyes looking at the camera while she smiled beside him — this was Thomas saying: yes. This one. Always this one."},
+{id:29,title:"Same Love, Same Look",cluster:"PEOPLE",hero:false,tone:"Tender",story:"The moment was savoured long enough to photograph twice — as if someone knew it was the kind of moment you want to keep in two places, in case one copy fades. Thomas and Kaiying, his steady gaze, her warmth beside him. Some moments deserve to be held more carefully than others."},
+{id:30,title:"Green Eyes, City Lights",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"The city glittered behind him and Thomas sat before it like a small king before his territory, his green eyes alert and bright, his white chest catching the blue evening light. Toys scattered around him like the evidence of a lively, well-loved life. He was, as always, the best thing in the frame."},
+{id:31,title:"Sunlit Balcony Bliss",cluster:"JOYS",hero:true,tone:"Peaceful",story:"The balcony was one of Thomas's great pleasures. The cushioned rattan sofa, the artificial grass beneath him, the light coming in at exactly the right angle — he arranged himself in the sun with the precision of someone who had studied the matter. Eyes closed. Whiskers at rest. Completely, sovereignly at peace."},
+{id:32,title:"4.26 kg of Dignity",cluster:"GENTLEMAN",hero:false,tone:"Playful",story:"He sat on the scale with the expression of a cat who considered the exercise beneath him but was willing, as a courtesy, to comply. Four point two six kilograms of dignity, composure, and quiet resistance. The reading was noted. His opinion of the process was not."},
+{id:33,title:"Anime Guardian at Home",cluster:"GENTLEMAN",hero:false,tone:"Poignant",story:"The household guardian, rendered mythic. Family photographs on the wall behind him, the familiar tiles beneath him — Thomas presiding over his home in a style that needed no embellishment. The anime form gives him something eternal. He was already that, really. Already timeless."},
+{id:35,title:"Tucked In, Looking Up",cluster:"JOYS",hero:true,tone:"Tender",story:"He claimed every bed as his own. The floral bedding, the teal headboard, the soft weight of him settled into the fabric as though it had been waiting. Those green eyes upward, direct and wondering — this was Thomas curious about who was looking at him from above. Always interested. Always present."},
+{id:36,title:"Family Gathered, Cakes Aglow",cluster:"PEOPLE",hero:false,tone:"Joyful",story:"The family Thomas lived within — gathered on the sofa, birthday cakes glowing before them, warmth visible in every face. He was always part of these moments, even when not in the frame. The home they made was his home. The celebrations they held were his celebrations. He was never a pet. He was family."},
+{id:37,title:"Belly Up, Fully Trusting",cluster:"QUIRKS",hero:false,tone:"Peaceful",story:"Paws in the air. Belly exposed. Eyes closed. This was Thomas's most honest statement about where he lived and who he lived with. A cat who sleeps like this has no fear in his home. He had none. He had Dhruv and Kaiying, and he had Tai, and he had the sofa, and the sun came in the windows. What was there to fear?"},
+{id:38,title:"Boy And Cat, Floor Nap",cluster:"SON",hero:true,tone:"Tender",story:"Arms wrapped around him, cheek pressed against his side — Tai loved Thomas with the uncomplicated physical love of a small child, and Thomas accepted it completely. From the day Tai was born, he had been gentle and patient and present. He understood, without being taught, that this boy was his to watch over."},
+{id:39,title:"Dreaming In The Sun",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Half-closed eyes and paws delicately folded — Thomas at rest was Thomas at his most beautiful. The light found him, as it always did. He had a gift for finding warmth and settling into it so completely that the warmth seemed to choose him."},
+{id:40,title:"Mama Teaches The Treat",cluster:"SON",hero:true,tone:"Intimate",story:"Kaiying's hands guiding Tai's small ones, the treat offered carefully, Thomas leaning in with his characteristic patience — this is how love gets passed from generation to generation. How Tai learned kindness. How Thomas became part of the teaching. Three of them, forming a circle of trust."},
+{id:41,title:"Watchful Guardian at Home",cluster:"GENTLEMAN",hero:false,tone:"Intimate",story:"He sat upright on the tiles, eyes direct and calm, the rustic elephant stools behind him like quiet companions in his domain. Thomas watched over his home not as a task but as a nature — the way some people are simply present in a way that makes everyone around them feel safe."},
+{id:42,title:"Little Hands, Big Love",cluster:"SON",hero:true,tone:"Tender",story:"Tai held the brush with enormous concentration, grooming Thomas the way he had seen the adults do. And Thomas sat still for it — more still than might have been strictly necessary — because this small person was learning love, and Thomas understood that he was part of the lesson."},
+{id:43,title:"Anime Thomas Prowls Home",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Even in illustration, the crouching Thomas has that particular quality — curious, low to the ground, eyes wide, deciding whether something is worth investigating. The bags, the clutter of a lived-in home, the familiar tiles — his kingdom, rendered in a style that makes it feel like a fairy tale. It was, a little."},
+{id:44,title:"Morning Scratch, Simple Joy",cluster:"JOYS",hero:false,tone:"Peaceful",story:"He stretched over his cardboard scratcher with the luxurious completeness of someone who had mastered the art of physical pleasure. Front paws extended, eyes half-closed, the white floor warm around him. Morning in Thomas's house. Everything in its right place."},
+{id:45,title:"Anime Thomas, Floor Lounge",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"Sprawled on warm wooden floors, green eyes carrying that particular Thomas quality — alert and at ease simultaneously, as if the world required watching but not urgently. He looked like this often. He will look like this forever, in everyone who remembers him."},
+{id:46,title:"Guarding the Stuffed Lamb",cluster:"JOYS",hero:false,tone:"Peaceful",story:"He draped himself over the soft lamb toy with the protectiveness of a cat who understood tenderness, who had always been gentle with small things. The hint of Tai's pink toy in the background. The quiet domestic scene. Thomas at his most softly guarding."},
+{id:47,title:"The Uninvited Dinner Guest",cluster:"PEOPLE",hero:true,tone:"Joyful",story:"He had wedged himself between the arm and the torso before dinner was even served, his face arranged in an expression of helpful interest regarding the menu. Dhruv would sometimes feed him chicken from his hand during meals — a ritual they both seemed to enjoy enormously. Thomas at the table was Thomas at his most social."},
+{id:48,title:"King of the Armrest",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Legs splayed, one paw raised mid-point, belly on full display — Thomas in one of his found sleeping positions. He had a gift for achieving poses that were simultaneously undignified and entirely sovereign. This one seems to be making a philosophical argument. Its conclusion: comfort."},
+{id:49,title:"Who Are These People?",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"He studied the Polaroid photographs held before him with the focused attention he gave everything he found worth understanding. His people. Their faces captured and offered back to him. Thomas regarded them with wide green eyes and something that looked, unmistakably, like recognition."},
+{id:50,title:"The Leather Chair Portrait",cluster:"GENTLEMAN",hero:false,tone:"Tender",story:"Paws folded neatly. White chest presented. Eyes composed and soulful. This is Thomas in the caramel leather recliner, and the recliner has the good fortune of being occupied by Thomas. His air of distinguished gentlemanliness required no effort. It was simply what he was."},
+{id:51,title:"Dressed for Recovery",cluster:"DATES",hero:true,tone:"Poignant",story:"His family wrapped him in a cream bow-patterned garment and watched over him through the nights. This is what love looks like when it becomes care — tender and improvised and completely devoted. Thomas bore his recovery dressing with characteristic dignity. He always seemed to understand that whatever was happening, it was being done out of love."},
+{id:52,title:"Same Gentle Moment",cluster:"DATES",hero:false,tone:"Poignant",story:"They photographed him twice, and more than twice, through this vulnerable time. Not because they were afraid — though perhaps they were — but because he was there and they needed to hold him close in every way available to them. Recovery. Care. The quiet vigilance of people who love completely."},
+{id:53,title:"Sunshine Boy, Beloved",cluster:"PEOPLE",hero:true,tone:"Joyful",story:"On the sunny balcony, held in arms that knew exactly how to hold him — Thomas completely relaxed and trusting against his person, both of them bathed in the light they shared. He let himself be held by the people he had chosen. This was one of the ways he said: yes. I chose right. I am glad."},
+{id:54,title:"His Boy's Pillow",cluster:"SON",hero:false,tone:"Intimate",story:"Tai's head on Thomas's side, the two of them on the carpet together, Thomas facing the camera with that steady calm — this was their language. Physical and simple and complete. From the day Tai was born, Thomas had been drawn to him. Now Tai used him as a pillow, and Thomas held still, and both of them were at peace."},
+{id:55,title:"Sofa Philosopher, Upside Down",cluster:"QUIRKS",hero:false,tone:"Playful",story:"On his back, legs akimbo, eyes half-closed in total bliss — Thomas the gentleman, utterly unbothered by the abandonment of dignity. He slept upside down because the sofa was his and he could. The white belly on full display, the tail somewhere behind him, the expression serene. A philosopher indeed."},
+{id:56,title:"Birthday Celebration With Family",cluster:"SON",hero:true,tone:"Joyful",story:"Thomas nestled in Tai's arms, the purple balloons behind them, the whole family gathered for a birthday — and Thomas part of it, naturally, as he was part of everything. He was not merely present at the celebrations of this family. He was one of the reasons they felt like celebrations."},
+{id:57,title:"Christmas Cat On High",cluster:"SON",hero:false,tone:"Playful",story:"The tiny Santa hat. Tai holding him up with the pride of a child displaying his greatest treasure against a backdrop of city sky. Thomas enduring all of it with the grace of a cat who understood that sometimes love expresses itself in small humiliations, and that the right response is to hold still and be loved."},
+{id:58,title:"Chin Scratch Bliss",cluster:"JOYS",hero:false,tone:"Intimate",story:"The eyes half-closed. The pink nose tilted upward. The expression of a cat accepting exactly the kind of touch he had decided was worthwhile — deliberate, on his own terms, settling into the pleasure of it without apology. Thomas received affection the way he gave it: with complete intention."},
+{id:59,title:"Thomas Announces The Boy",cluster:"DATES",hero:true,tone:"Poignant",story:"The card beside him reads We're Having a Boy, and Thomas rests his chin on his perch with an expression of perfect deadpan — the reluctant messenger who has clearly known all along. He was there for all of it: the announcement, the pregnancy, the first cry. He smelled Tai's head and purred. He already knew."},
+{id:60,title:"Curled In Perfect Sleep",cluster:"JOYS",hero:false,tone:"Peaceful",story:"A tight, peaceful ball. Paws tucked in. Eyes gently closed. Grey-and-white luminous against the dark fabric. Thomas slept with the complete confidence of someone who had made excellent choices about where to spend his rest. He always had."},
+{id:61,title:"Sunlit Morning Sentinel",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"Morning light through the glass door, the cat tree behind him, the blue bowl nearby — Thomas at the start of another day, already composed, already watching. Dhruv would come down first and find him there. Feed him. They would have their quiet morning together before the rest of the house woke. It was sacred, that hour."},
+{id:62,title:"Lunch With Loved Ones",cluster:"PEOPLE",hero:false,tone:"Joyful",story:"The people who loved Thomas, gathered together. The warmth that filled a room when this family was whole. Thomas orbited all of them and was loved by all of them, and the celebrations they shared without him were made richer by knowing he was home, waiting, keeping the place warm."},
+{id:63,title:"Tucked In Together",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Held in a cat bed, both of them curled into each other — Thomas tolerant and dignified, his person bright with affection. He endured being held the way he endured all kinds of love: with composure, with patience, and with the quiet satisfaction of knowing he was exactly where he was supposed to be."},
+{id:64,title:"He Has Opinions",cluster:"QUIRKS",hero:true,tone:"Playful",story:"Mouth open, one eye half-closed for emphasis, white chest puffed — Thomas was making a point, and it was important. What the point was is lost to history, but the sincerity with which it was delivered is not. He communicated clearly. He expected to be understood. He usually was."},
+{id:65,title:"Safe Between The Legs",cluster:"JOYS",hero:false,tone:"Tender",story:"A perfect crescent, pink nose tucked against his paw, white belly soft and surrendered — Thomas in his favourite cradle, the warm hollow between a person's legs on the sofa. He slept every night between Dhruv's legs. He was doing what he had always done. He was home."},
+{id:66,title:"Pillow For My Boy",cluster:"SON",hero:true,tone:"Intimate",story:"Tai's head rested on Thomas's body, the weight of a toddler pressing gently into his side, and Thomas held still. Eyes soft. Patient. When Tai cried as an infant, Thomas would come to Dhruv and Kaiying and stroke their legs — Tai is crying, do something. He always knew. He was always watching. He let himself be the pillow because the boy needed one."},
+{id:67,title:"King of the Rug",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"A small toy held loosely between his paws. His gaze calm and assured on the patterned carpet. Thomas at his ease, in his kingdom, requiring nothing more than this — the rug warm beneath him, the evening light doing its best, the home quiet around him."},
+{id:68,title:"Mid-Stride, Full Joy",cluster:"JOYS",hero:false,tone:"Playful",story:"Caught mid-trot, tail high, one paw raised in mid-step — Thomas moving through his world with the confidence of a cat who knows every corner of it. He moved through rooms the way some people move through rooms: as though the room had been arranged for him and he was making good use of it."},
+{id:69,title:"The Gentleman Surveys",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"On the white step stool, tail curled neatly beside him, posture impeccable — Thomas as elder statesman. He had grown into his authority over twelve years. It was never loud. It never needed to be. He simply sat, and the room understood that something of consequence was present."},
+{id:70,title:"Devoted To His Bowl",cluster:"JOYS",hero:false,tone:"Tender",story:"Eating from his teal bowl, tail raised in the upward curve of contentment — one of life's reliable pleasures, observed faithfully. The morning ritual. The murmuring sound as he walked to it. The dinner Dhruv would set down and Thomas would receive with the dignified urgency of a cat who knew exactly what he wanted."},
+{id:71,title:"Sleeping With His Teddy",cluster:"QUIRKS",hero:true,tone:"Tender",story:"He had chosen the spot beside the stuffed bear in the blue shirt and made himself into a perfect curve beside it. Thomas and his various sofa companions over the years — the stuffed animals, the toys, the beloved objects of a household with a young child. He slept among them like one of them, completely at peace."},
+{id:72,title:"Curled On The Bed",cluster:"JOYS",hero:false,tone:"Peaceful",story:"A tight curl on the light blue bedspread, pink paw pads visible, entirely undisturbed. Thomas on the family bed was Thomas at his most domestic and content — claiming the warmth of the place where his people slept, keeping it warm for them, already there when they arrived."},
+{id:73,title:"Chin Scratches, Green Eyes",cluster:"GENTLEMAN",hero:true,tone:"Intimate",story:"Eyes half-lidded and knowing, pink nose prominent — Thomas accepting affection on his own terms. He had a particular quality of receiving a chin scratch that felt like an honour being bestowed rather than a request being granted. He tilted his head just so. He made you feel you had done something right."},
+{id:74,title:"Draped Across My Legs",cluster:"PEOPLE",hero:false,tone:"Intimate",story:"His full length along the legs, the warm pillow of them beneath him, eyes softly closed — boneless and blissful and completely trusting. He chose this. He chose it over the floor and the cat tree and every other available surface. He chose the warmth of a person, every time."},
+{id:75,title:"Watching The Tablet Screen",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Nose close to the screen, eyes fixed, curiosity fully engaged — Thomas watched screens with the attentiveness of someone who genuinely wanted to understand what was happening on them. He watched the baby monitor when Tai slept. He watched music videos. He watched whatever was on with quiet, focused interest."},
+{id:76,title:"Three Kings Under Table",cluster:"SON",hero:true,tone:"Joyful",story:"The boy in his orange Paw Patrol shirt, the gleaming silver lion, and Thomas sitting tall and white-chested to the right — three kings sharing a small kingdom. Tai grew up with Thomas as his brother, his constant. They shared floors and sofas and bedtime and this particular afternoon under a blue console table."},
+{id:77,title:"Watching From The Sidelines",cluster:"PEOPLE",hero:false,tone:"Tender",story:"Beside the small white chair, tail curled neatly, watching the room with quiet curiosity — Thomas in the household he watched over. The children's furniture beside him tells the story: he was always there, always nearby, keeping watch over every stage of Tai's growing up."},
+{id:78,title:"Surveying His Harbor Kingdom",cluster:"JOYS",hero:true,tone:"Peaceful",story:"Floor-to-ceiling windows, a sweeping port panorama, cranes and ships and sea — and Thomas on his red cloth, gazing out like a small emperor contemplating vast domains. He had a high-rise life and he appreciated every floor of it. The view changed. He never tired of it."},
+{id:79,title:"Resting At The Tower",cluster:"JOYS",hero:false,tone:"Intimate",story:"Head tilted sideways at the base of his scratching post, the frayed sisal showing twelve years of faithful use — Thomas at his well-loved retreat. The scratching post, the cat tree, the round bed on the top platform: these were his structures, built around his happiness, and he used them all."},
+{id:80,title:"Packed And Ready, Thomas",cluster:"DATES",hero:false,tone:"Poignant",story:"He sat before the suitcase with dignity, the sticker beside him reading I'm packed and ready to go. There is something in this image that arrives differently now — a cat who was always, in his way, ready. Who moved through his life with such completeness that when the time came, he was not hurried or afraid. He was ready."},
+{id:81,title:"Curled Tight in Sunlight",cluster:"JOYS",hero:true,tone:"Peaceful",story:"A perfect circle on the round perch, bathed in morning light, paws tucked beneath his chin. Thomas and the sun had an understanding. He knew where it would be and when, and he arranged himself accordingly. The light found him always. Perhaps it still does."},
+{id:82,title:"The Lounge King Rules",cluster:"GENTLEMAN",hero:false,tone:"Joyful",story:"Belly exposed, Darth Vader cushion beside him, paws outstretched in every direction — Thomas in his magnificent weekend sprawl. He looked sideways at the camera with the calm confidence of a cat who owned the furniture absolutely and had no concerns about anyone's opinion of this."},
+{id:83,title:"Shelter Seeker, Eyes Wide",cluster:"QUIRKS",hero:false,tone:"Playful",story:"The umbrella, opened and placed on the counter, became Thomas's tent within approximately four minutes of its appearance. He sat beneath its canopy with the proprietary satisfaction of someone who had found an excellent new property. Sheltered corners, cosy hideaways — he had a nose for them."},
+{id:84,title:"Shadowed But Still Watching",cluster:"QUIRKS",hero:false,tone:"Intimate",story:"From the dim interior of his unlikely den, one eye catching the light, tabby markings half in shadow — Thomas curious but unhurried. This was him investigating, evaluating, deciding whether the umbrella met his standards. It apparently did. He stayed."},
+{id:85,title:"His Favourite Tiny Tent",cluster:"QUIRKS",hero:true,tone:"Tender",story:"Centred beneath the canopy, framed symmetrically by its curve, pink nose clear and steady — Thomas inside his umbrella, serene inside the absurd. He found sheltered places throughout his life: under beds, inside bags, in the hollow between legs. He knew how to make himself small inside something larger and feel completely safe."},
+{id:86,title:"Sleeping on Warm Legs",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"On his back across a leg, belly exposed, paws outstretched — this was the total trust of a cat who had given himself over completely to his people. Thomas's white chest soft in the dim bedroom light. This was a cat who chose, and kept choosing, and in choosing, showed you what love looked like when it was absolutely certain of itself."},
+{id:87,title:"Curled Beside His Person",cluster:"PEOPLE",hero:false,tone:"Peaceful",story:"Tucked snugly alongside a leg on the blue duvet — compact, content, needing only proximity to be complete. Thomas needed to be near. Not always touching, but always aware. He knew where everyone was. He moved through the house tracking them, and when he found them, he settled."},
+{id:88,title:"Half-Lidded Love",cluster:"PEOPLE",hero:true,tone:"Tender",story:"The slow blink. Heavy, drowsy eyes looking up through half-lowered lids — this is a cat saying I love you in the only language they have that means it without ambiguity. Thomas delivered this look to his people regularly. Nestled between pillow and person, fully certain, completely at home. He was saying it right now."},
+{id:89,title:"Between the Legs Always",cluster:"QUIRKS",hero:false,tone:"Intimate",story:"His paw resting gently against the ankle beside him, as if holding on — a small gesture of enormous devotion. Thomas between the legs every night. The warmth of familiar bodies. His paw pressed lightly against the skin of someone he loved. Holding on, in his quiet way, always."},
+{id:90,title:"Enchanted by the Shoes",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Nose deep in the yellow heeled sandals, the investigation absolutely serious — Thomas and his great love of shoes. He nuzzled into people's shoes and slept on them. Scent was his first language. He read a person's day in their shoes the way others read a book. He always knew who had been where."},
+{id:91,title:"King of His Tower",cluster:"JOYS",hero:false,tone:"Peaceful",story:"One paw dangling through the circular tunnel, draped across the platform in total ease — Thomas on his cat tree was Thomas at his most unburdened. The kingdom was his. The perch was his. The green-gold eyes gazing sideways with quiet ownership. Everything as it should be."},
+{id:92,title:"Belly Up, Fully Trusting",cluster:"JOYS",hero:false,tone:"Tender",story:"All four paws adrift in the air, soft white belly exposed, one eye barely bothering to stay open — Thomas demonstrating, again, his complete confidence in his home and everyone in it. No fear. No armour. Just a cat who knew, beyond any doubt, that he was loved."},
+{id:93,title:"Those Eyes Say Everything",cluster:"GENTLEMAN",hero:true,tone:"Intimate",story:"Green-gold eyes looking directly and intently into the camera — the portrait of a gentle, dignified soul who had decided you were worth his full attention. Thomas could hold a gaze. He looked at you the way some people look at you: as though you were actually there, actually visible, actually known. It felt like being seen."},
+{id:94,title:"Inspecting the Avocado Toast",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Nose tipped purposefully toward the poached egg, expression one of unapologetic curiosity — this was also his breakfast, Thomas had decided, and he was conducting the necessary investigation. He was never grabby. Never rude. Just present, interested, and quietly certain that the family table was his table too."},
+{id:95,title:"Caught Red-Pawed",cluster:"EARLY",hero:true,tone:"Joyful",story:"The young Thomas — one paw draped over a shoe, eyes wide and innocent as he looks back at the camera, caught in the act and choosing charm over concealment. This was the beginning. The frightened boy who hid under the bed had become this: curious, bold, nuzzling into shoes, charming his way through every room."},
+{id:96,title:"Shoe Inspector on Duty",cluster:"QUIRKS",hero:true,tone:"Playful",story:"Sprawled on marble, paw proprietorially over the ballet flats, eyes bright with mid-mischief — the shoes had been claimed. Thomas had a long and distinguished career as a shoe inspector. He took the work seriously. Every pair received his full attention, his nose pressed into them with the focused pleasure of someone reading something they love."},
+{id:97,title:"King of the Sofa",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"Front paws crossed, eyes half-lidded with feline superiority — the mature Thomas on his cream sofa, radiating the quiet confidence of a cat who has arrived at exactly where he intended to be. Twelve years of knowing his own mind. He rested in the certainty of himself."},
+{id:98,title:"Belly Up, No Worries",cluster:"JOYS",hero:false,tone:"Tender",story:"All four paws in the air on his white fleece bed, face turned gently toward the camera with soft sleepy eyes — Thomas with his favourite posture of absolute contentment. He held it like a signature. A declaration. I am safe. I am loved. I am not moving."},
+{id:99,title:"Dreaming in Safety",cluster:"JOYS",hero:false,tone:"Peaceful",story:"The same fleece bed, the same upward paws, the eyes now catching a gentle glint — as if he had heard his name but decided sleep was more important. This was his spot. This was his position. This was the Thomas who had found, in the home his people made for him, complete and total peace."},
+{id:100,title:"Contemplate the Glass Table",cluster:"QUIRKS",hero:true,tone:"Joyful",story:"His own cat bed on the rug, unused. Thomas on the glass dining table, his reflection visible beneath him, gazing at the wall while a painted portrait of a cat presides above. He always chose the unexpected surface. He always found the more interesting perch. His reflection gazed back from the glass like a second opinion that agreed completely."},
+{id:101,title:"Morning Light, Cat Free",cluster:"PEOPLE",hero:false,tone:"Peaceful",story:"The grey duvet rumpled, his person curled beneath, Thomas having claimed a generous portion of the bed for himself — morning light filtering through. He made himself at home on the bed the way he made himself at home everywhere: with complete conviction and not a moment's uncertainty."},
+{id:102,title:"Held Close While Sleeping",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Tucked in the crook of Kaiying's arm, both of them utterly relaxed, the blue duvet wrapped around them — this was the beginning. She had spoken to him every day for two weeks under the bed until he trusted her. Now he slept in the crook of her arm, his white chest pressed against her, as if he had always been there. He had, really."},
+{id:103,title:"Cheek To Cheek Selfie",cluster:"PEOPLE",hero:false,tone:"Tender",story:"Face pressed upward into a cheek, eyes half-closed in contentment — Thomas's signature move, the gesture that had been there from the beginning. One of the first photos was Thomas stroking Dhruv's face with his paw. He had been reaching toward his people ever since. Reaching up. Pressing close. Saying, in his way, that he was glad they were there."},
+{id:104,title:"Those Wide Green Eyes",cluster:"GENTLEMAN",hero:true,tone:"Playful",story:"Enormous, luminous green-gold eyes looking up from his grey cat bed with an expression of theatrical alertness — Thomas at his most characterful. He could make his eyes very large when the situation called for it. The situation always called for it when someone was watching."},
+{id:105,title:"Curled On Cat Cushion",cluster:"JOYS",hero:false,tone:"Peaceful",story:"A perfect tight circle, nose tucked beneath his white paw, surrounded by printed cats on the burlap cushion behind him — the real Thomas among his illustrated counterparts, and somehow more dignified than all of them. He slept among the printed cats and outdid them simply by being there."},
+{id:106,title:"Loaf In A Bowl",cluster:"QUIRKS",hero:true,tone:"Playful",story:"He had assessed the clear plastic basin, determined it was of adequate dimensions, and installed himself accordingly. The bowl was comically undersized. Thomas was perfectly content. His paws tucked neatly, his white chest pressing against the translucent sides — a man in a too-small chair, entirely unbothered, entirely pleased with himself."},
+{id:107,title:"Bedtime With My Boy",cluster:"SON",hero:true,tone:"Intimate",story:"Tai in his sheep-print pyjamas, arms wrapped loosely around Thomas, cheek pressed against him — pacifier in mouth, both of them at rest. Thomas accepted this cuddle with the patience of a cat who understood that being used as a soft toy by a beloved child was one of life's honours. He held still. He let himself be held. He was Tai's, and he knew it."},
+{id:108,title:"Sofa King Resting",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"Sideways across the cream sofa, front paws extended, tail draping elegantly — green treetops through the window behind him, the afternoon at its most serene. Thomas at rest was Thomas at his most beautiful. He could hold stillness the way some people hold a note: with intention, with grace, for as long as it was needed."},
+{id:110,title:"Three Became Four",cluster:"DATES",hero:false,tone:"Joyful",story:"A glowing couple on their balcony — the blue dress, the smile, the visible pregnancy — and Thomas sitting right between them in the chair, included as naturally as breathing. He was already family long before Tai arrived. He sat between them, a third point in a triangle that was about to become four, and he seemed utterly at ease with the expansion."},
+{id:111,title:"Bollywood Fan Cat",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Sitting up straight before the iPad, Kal Ho Naa Ho on the screen — Thomas watching Bollywood radio with the focused attention of a genuine enthusiast. He watched screens. He was caught multiple times watching the baby monitor when Tai was sleeping, and various other things in between. He was interested in the world. In all its forms."},
+{id:112,title:"Those Eyes, That Soul",cluster:"GENTLEMAN",hero:true,tone:"Intimate",story:"A close portrait — the luminous green-gold eyes looking directly into the camera, the pink nose, the white and tabby markings beautifully detailed. This is Thomas fully seen: the quiet intelligence, the gentleness, the alert warmth of a creature who was genuinely present in his life and in the lives of everyone around him."},
+{id:113,title:"Guardian of the Corner",cluster:"QUIRKS",hero:false,tone:"Peaceful",story:"Beside the white air purifier, tucked against the wall, looking up with calm curiosity — Thomas having appointed himself inspector of this particular corner. He patrolled his home with the thoroughness of someone who cared about the details. Every room had been assessed. Every corner had been sat in. He kept a mental inventory."},
+{id:114,title:"Someone's Calling, Thomas",cluster:"QUIRKS",hero:false,tone:"Playful",story:"The iPhone beside him ringing, Thomas regarding it with knowing half-lidded eyes — entirely unbothered. He had opinions about interruptions. He also had the authority to decide which ones merited his attention. This call, apparently, did not. He was comfortable. The call could wait."},
+{id:115,title:"Cheek to Cheek Always",cluster:"PEOPLE",hero:true,tone:"Tender",story:"His face pressed against Kaiying's cheek, his white paw resting at her shoulder, whiskers fanning out in a gentle embrace — Thomas and his first person, in the gesture that never changed. He had come to her from under the bed, frightened and small. Now he pressed his face against hers and the love between them was radiant and unguarded."},
+{id:116,title:"Nuzzling Cheek to Cheek",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"His face tender against a cheek, the bookshelf of a full-lived home behind him — this was Thomas's signature gesture, the physical vocabulary of his love. He stroked faces with his paw. He pressed his nose to skin. He found the people he loved and he leaned into them, and they leaned back, and years went by like this."},
+{id:117,title:"Kissing the Hand That Loves",cluster:"PEOPLE",hero:false,tone:"Tender",story:"Nose touched gently to a chin — a kiss, or as close as a cat comes to one. The bright backlight giving the image a luminous, almost sacred quality. Thomas touching the face of someone he had chosen and continued to choose. Small. Deliberate. Unmistakable."},
+{id:118,title:"Held in the Light",cluster:"PEOPLE",hero:false,tone:"Peaceful",story:"Against a shoulder, both bathed in soft window light, his tabby markings warm against the brightness — Thomas resting in someone's arms with the completeness of a cat who has decided this is exactly right. He was held often and he let himself be held. That ease was a gift. They knew it then, and they know it more now."},
+{id:119,title:"Sunday Morning Stretch",cluster:"JOYS",hero:true,tone:"Playful",story:"On his back across the bed, belly fully exposed, one paw raised in total abandon, eyes wide and alert — mid-lounge, caught in the act of being magnificently at ease. Sunday mornings with Thomas. The whole family still in bed, the light coming in, Thomas already performing his greatest work: existing happily in a home where he was loved."},
+{id:120,title:"You Shall Not Leave",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"On top of the silver suitcase, one white paw planted firmly, green eyes looking up with quiet insistence — this was Thomas's position on travel. He took it every time a bag appeared. He sat on them. He occupied them. He made his feelings clear through the oldest and most feline of protests: presence. You are not going anywhere."},
+{id:121,title:"Bump Guardian, Always Present",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Thomas curled against the baby bump, small red accessory on his head, eyes half-closed in bliss — already bonding before Tai had arrived. He was drawn to new life. He had always been gentle. When Tai was born, he came to smell the baby's head, and he purred. He had already known, somehow, that this was his son too."},
+{id:122,title:"Belly Up, Fully Trusting",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Across someone's lap, white belly completely exposed, tabby markings framed beautifully — Thomas at his most relaxed and surrendered. He trusted with his whole body. When he felt safe, you knew it immediately, completely. There was nothing held back."},
+{id:123,title:"Sun King at the Window",cluster:"JOYS",hero:true,tone:"Peaceful",story:"On his mat at the high-rise window, the city highway far below, eyes gently closed in the warmest afternoon light — Thomas sunbathing with the dedication of a practitioner. He found sunbeams and settled into them the way you settle into a long-awaited conversation. He never tired of the warmth. It never tired of finding him."},
+{id:124,title:"Dreaming Above the City",cluster:"JOYS",hero:false,tone:"Peaceful",story:"The same spot, the same stillness — someone couldn't stop photographing him. He stopped people in their tracks that way. He was beautiful in the light, and the light was beautiful on him, and the moment was worth preserving twice because once didn't feel like enough."},
+{id:125,title:"Those Eyes Say Everything",cluster:"PEOPLE",hero:false,tone:"Tender",story:"On his back in a lap, eyes wide and bright and impossibly expressive, looking up at the camera — Thomas seen and knowing it. This was his most communicative look: the full-open eyes that said I am here, you are here, and this is good. He meant it completely every time."},
+{id:131,title:"Guardian of the Suitcase",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Young Thomas, sphinx-like atop the grey suitcase at the front door, watching the camera with alert eyes — you're not leaving without me. He took up this position faithfully across twelve years. Every suitcase. Every bag. Every time someone prepared to go somewhere. He sat on top of it and made his feelings known in the most physical way possible."},
+{id:132,title:"Curled in the Sun",cluster:"JOYS",hero:true,tone:"Peaceful",story:"Coiled perfectly into the round perch, morning light through the curtains illuminating his white fur like a halo, eyes closed, paws tucked beneath his chin — absolute, complete contentment. The sun and Thomas had a long arrangement. He knew where it would be, and he was always already there."},
+{id:133,title:"Paw on the Page",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Sprawled on his back in total abandon, one paw resting possessively on a New Zealand notebook — the reading material now belongs to him. Thomas loved a flat surface with something interesting on it. He loved it more if someone else was using it. He rested on paper with the satisfaction of a cat who had made an excellent decision."},
+{id:134,title:"Long Stretch on Sofa",cluster:"JOYS",hero:false,tone:"Tender",story:"Fully extended along the couch cushions, pressed against a pillow, Timon and Pumba watching over him — Thomas in one of his magnificent full-body stretches. He could make himself very long. He was proud of this. He used every centimetre of the sofa he had been given and then a few more."},
+{id:135,title:"Those Green Eyes",cluster:"GENTLEMAN",hero:true,tone:"Intimate",story:"Staring into the camera with his striking green-gold eyes wide open — vivid, curious, fully present. Collar bell catching the light. The Uber Eats bag beside him suggesting he was personally investigating a delivery. Thomas at his most handsome and alert, ready to inspect whatever had arrived. It was probably for him anyway."},
+{id:136,title:"Sleeping on Warm Legs",cluster:"PEOPLE",hero:false,tone:"Tender",story:"Curled against someone's bare legs, collar visible, eyes peacefully closed — the picture of complete trust. He slept every night between Dhruv's legs. He slept across laps. He slept on chests. He chose the human perch, always, because it was warm and it breathed and it was the person he loved. What else would you choose?"},
+{id:137,title:"Watching Himself on Screen",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Upright in the dim light, transfixed by the tablet screen showing what appeared to be another cat — or perhaps himself, reflecting. Thomas watched screens with genuine interest. He watched the baby monitor. He watched music. He watched the television. He watched himself, it seems, with the same focused curiosity he gave everything worth watching."},
+{id:138,title:"Tower Nap, Tail Raised",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Sprawled across the top platform of his cat tree, one hind leg lifted improbably into the air in deep, uninhibited sleep — Thomas utterly unbothered by dignity when comfort was involved. He owned the platform. He used all of it. He slept exactly as he pleased."},
+{id:139,title:"Paw on His Shoulder",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"A gentle white paw pressed onto a bare shoulder — Thomas reaching toward Dhruv with the same paw that, in one of the first photographs, had stroked his face. He had been reaching toward his people since the beginning. This gesture was his signature. I choose you. I am here. I am glad. Three years of dinners and mornings and evenings had led here, to this paw on this shoulder."},
+{id:140,title:"The Great Sofa Stretch",cluster:"JOYS",hero:false,tone:"Joyful",story:"Front paws braced against the cushion edge, head tilted back in bliss, tail a blur of motion — Thomas in his most luxurious stretch. He was the undisputed master of the long, slow, perfect moment. He stretched the way you want to stretch: completely, without apology, with every muscle involved and satisfied."},
+{id:141,title:"Belly Up, Totally Trusting",cluster:"QUIRKS",hero:true,tone:"Joyful",story:"On his back on a sofa cushion, fluffy white belly fully exposed, one paw raised mid-air, black-tipped tail visible — Thomas at his most unguarded and joyful. This was his declaration: I am safe here, in this home, with these people, in this life. No defences. No worries. Just the sofa and the warmth and the absolute certainty of being loved."},
+{id:142,title:"Red Bow, Walking Away",cluster:"GENTLEMAN",hero:false,tone:"Playful",story:"Seen from above, the festive red ribbon bow around his neck, Thomas walking across the dark granite with quiet purpose — heading somewhere, dressed up, entirely unbothered. He wore bows and Santa hats with the grace of a cat who understood that dignity does not depend on what is around one's neck. Heading somewhere. As always."},
+{id:143,title:"Green Eyes Look Up",cluster:"GENTLEMAN",hero:true,tone:"Tender",story:"The red bow still around his neck, tail curled upward in greeting, pink nose and white chest glowing against the dark floor — Thomas looking directly up at whoever was above him with pure, open-hearted charm. He was charming in the way that people who don't try to be charming always are. He simply looked at you, and you were charmed."},
+{id:144,title:"Curious About Golden Leaves",cluster:"JOYS",hero:false,tone:"Playful",story:"In his red bow, leaning forward to sniff the glittering ornament held before him — cautious and curious in equal measure. Thomas at Christmas was Thomas the consultant. He reviewed the decorations each year with careful attention. He tested structural integrity with his nose. He approved of sparkle. He had standards, and they were high."},
+{id:145,title:"King of His Tower",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"Poised on the middle platform, gazing slightly off-camera with quiet confidence, white chest and tabby markings beautifully lit — Thomas in one of his natural states: watchful, composed, precisely where he intended to be. He was always precisely where he intended to be."},
+{id:146,title:"King of His Tower",cluster:"GENTLEMAN",hero:true,tone:"Joyful",story:"Upright on the platform, green-gold eyes looking directly into the camera, white chest proud and composed — the very picture of feline dignity. This is Thomas at his most himself: entirely at ease, entirely certain, looking at you with those eyes that held both warmth and distance, both love and sovereignty."},
+{id:147,title:"Napping on the Boarding Pass",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Belly exposed, head tilted back, draped over a boarding pass and documents with an Apple TV remote resting on him — Thomas having decided that whatever journey this paperwork represented, he had reviewed it and the decision was: nap. He frequently overruled travel plans. His presence was a counterargument that was difficult to dismiss."},
+{id:148,title:"Sunbeam and Sophie",cluster:"SON",hero:false,tone:"Peaceful",story:"Stretched near the sun-drenched window, face tucked down in sleep, the Sophie the Giraffe teething toy beside him — Thomas and the evidence of Tai's arrival. He adjusted to everything. The baby toys beside him, the small human who needed watching, the monitor to sit before. He incorporated it all into his life with grace."},
+{id:149,title:"Our Family of Three",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"A warm family selfie — the smiling couple, Thomas nestled against Kaiying's shoulder with his green eyes wide and watchful. The love between all three unmistakable. He was not a pet. He was the third person in this family portrait, and he always had been, from the moment Dhruv sat in the chair Thomas later claimed and smelled."},
+{id:150,title:"Full Belly, Zero Cares",cluster:"JOYS",hero:false,tone:"Joyful",story:"Completely upside down, all four paws in the air, soft white belly exposed, pink nose calm — the ultimate display of trust and contentment. Thomas in his favourite posture of happiness. He had perfected it over twelve years. He returned to it always. It meant: everything is right. Everything is exactly as it should be."},
+{id:151,title:"Supervising the Mahjong Game",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Seated beside the open box of blue tiles, green-gold eyes on the camera, having appointed himself official game inspector — Thomas inserting himself into an activity that was, he had decided, his business. He attended gatherings. He supervised activities. He made his presence felt at every occasion without ever demanding to be the occasion."},
+{id:152,title:"Resting on Warm Legs",cluster:"PEOPLE",hero:false,tone:"Intimate",story:"Curled against legs in bed, eyes closed in deep sleep, tabby markings beautifully detailed in the low light — Thomas in his rightful place. Beside a person. Close enough to feel them breathe. His white chest rising and falling in quiet trust. This was where he chose to sleep, always. This was home."},
+{id:153,title:"Claiming the Packed Bag",cluster:"QUIRKS",hero:true,tone:"Playful",story:"Sprawled across the open red duffel bag, one paw raised in relaxed defiance, green eyes catching the light — you're not going anywhere. He made this statement regularly and with conviction. He lay across bags, sat on suitcases, occupied every piece of luggage with the determination of someone who was making a philosophical point about absence."},
+{id:154,title:"King of His Tower",cluster:"GENTLEMAN",hero:false,tone:"Joyful",story:"On the mid-level platform, tongue just slightly visible, one leg dangling with casual elegance — Thomas surveying his domain with the quiet authority of a cat who had earned every centimetre of his tower. He had used it daily. The sisal was frayed from twelve years of faithful use. He kept it all."},
+{id:155,title:"Sleeping Against Her Heart",cluster:"PEOPLE",hero:true,tone:"Tender",story:"Against her chest, eyes closed in complete contentment, one white paw resting on her as she smiled softly at the camera — Thomas and his person in the bond that had begun under a bed. He had chosen her first, before he trusted anyone. He slept against her heart because that was where he had always been."},
+{id:161,title:"Cheek to Cheek Selfie",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"His face pressed tenderly against a cheek, paw resting near an ear — the gesture Thomas returned to again and again across twelve years. It began with a paw on Dhruv's face in one of the first photographs. It never stopped. He pressed his face against the faces of the people he loved because words were not available to him and touch was, and he used it."},
+{id:162,title:"Laptop Inspector on Duty",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Sprawled across the MacBook keyboard, serene and unbothered, the PowerPoint presentation waiting beneath him, the sticker reading BE PRESENT — Thomas taking that instruction more literally than perhaps intended. He was present on the laptop. He was present in every room he entered. He made sure you noticed."},
+{id:163,title:"Curious Paw, Quiet Moment",cluster:"JOYS",hero:false,tone:"Peaceful",story:"On the blue blanket, one paw extended, eyes fixed intently downward at something just out of frame — Thomas in the middle of a private investigation. He moved through the world with this quality of focused curiosity. Everything was potentially interesting. He gave it all his full attention, briefly, before deciding what it was worth."},
+{id:164,title:"Green Eyes, Full Trust",cluster:"PEOPLE",hero:true,tone:"Tender",story:"Cradled in his person's arms, striking green-gold eyes looking directly into the camera with calm confidence, her face close to his — the bond between them settled and certain. He sat in her arms the way he sat everywhere: as though he had decided this was exactly right, and he had, and it was."},
+{id:165,title:"Belly Up, World Trusted",cluster:"JOYS",hero:false,tone:"Joyful",story:"Fully on his back, paws in the air, belly exposed, the owl toy nearby keeping watch — Thomas in his declaration of safety. This posture was his answer to the question: are you happy here? It said: completely. Entirely. Every day."},
+{id:166,title:"King of the Chaos",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Amid the packing chaos, clothes and bags spread across the bed, Thomas had claimed a pile of dark fabric as his throne — paws tucked, white chest glowing, entirely unbothered by the disorder. He thrived in the middle of things. He required no stillness. He brought his own."},
+{id:167,title:"Foot Warmer on Sofa",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"His face pressed gently against a bare foot, curled between his person's legs in the warm evening light — Thomas and the small, faithful gestures of his love. He kept feet warm. He held ankles. He pressed his face against the feet of the people he loved because they were there and he was there and that was enough reason."},
+{id:168,title:"Guardian of the Wardrobe",cluster:"QUIRKS",hero:false,tone:"Playful",story:"On the bed before the open wardrobe, perched on the Calvin Klein underwear with quiet authority, gaze directed sideways — Thomas supervising the getting dressed process. He attended to the details of domestic life with great conscientiousness. He was helpful in his way. His way was mostly supervisory."},
+{id:169,title:"Curled on Dark Fabric",cluster:"JOYS",hero:false,tone:"Peaceful",story:"A perfect loaf on the Nike sportswear, eyes half-closed in drowsy contentment, tabby markings forming a beautiful pattern against the dark clothing — Thomas finding comfort in unlikely places. He could make any surface comfortable. Any pile of fabric into a bed. Any corner into a home. He was a master of the found nest."},
+{id:170,title:"Prince in His Tower",cluster:"GENTLEMAN",hero:true,tone:"Tender",story:"In the cup of his cat tree, green-gold eyes gazing thoughtfully downward, the feather toy resting nearby — Thomas sharp and handsome, ears alert, expression dignified. He grew into this look over twelve years. The young frightened cat under the bed had become this prince: composed, watchful, entirely sure of himself and his place."},
+{id:171,title:"King of His Castle",cluster:"JOYS",hero:true,tone:"Joyful",story:"Reclined in the lower basin, surrounded by his stuffed mouse and feathered ball, green-gold eyes looking up with total ease — Thomas in his kingdom, his toys nearby, his white belly on display. The cat tree had been built around his happiness. He used it completely. He was happy there. He was happy everywhere he chose to be."},
+{id:172,title:"Supervising the Packing",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Settled atop the folded clothes with feline authority — watchful, slightly drowsy, simultaneously supervising and protesting. Thomas believed that wherever people were organising things, his presence was required. He was right. The packing always went better with him there. Or at least more slowly, which amounted to the same thing from his perspective."},
+{id:173,title:"The Gentleman Sits Proud",cluster:"GENTLEMAN",hero:false,tone:"Tender",story:"Upright on the carpet, the city glittering through the night window behind him, toy cars scattered around him — Thomas poised and present in the room that had grown up around Tai. He sat among the toy cars with the dignity of someone who was comfortable in all the stages of his family's life. He was. He always was."},
+{id:174,title:"Lord of the Heights",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Atop the highest perch in the dim evening light, draped over the edge like a small sovereign, the room glowing warmly below — Thomas looking down at his world. He loved the high places. The platform he had earned. The view of the room from above. He oversaw everything and everyone, and they were all the better for it."},
+{id:175,title:"Curled Into Himself",cluster:"JOYS",hero:true,tone:"Intimate",story:"Coiled in his cat bed, face tucked into his paws, ears just visible — Thomas in his most private moment of rest. Paw against nose, fur against fur, the smallest and most perfect shape. He had learned to feel safe and then he had never stopped knowing it. He curled into himself and rested in the certainty of it."},
+{id:176,title:"Loaf Upon the Blanket",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Perfect loaf on the pink floral blanket, paws tucked beneath him, half-lidded contentment — Thomas at the head of the bed, keeping the place warm, watching with quiet ownership. He was always at the head of things, in his quiet way. Always already there."},
+{id:177,title:"King of the Tower",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Curled on the top perch at night, overlapping the platform with relaxed confidence, chin over the edge, eyes alert — the city lights glowing softly behind him. Thomas at night was Thomas most himself: still, curious, watching the world from his high place while the family slept below."},
+{id:178,title:"Held With Pure Joy",cluster:"PEOPLE",hero:false,tone:"Joyful",story:"Cradled in arms in the bright living room, green-gold eyes wide and calm, the colourful rabbit painting vivid behind them — Thomas held by someone who was genuinely delighted to be holding him. He inspired delight. He sat in arms and people lit up. That was just what he did."},
+{id:179,title:"Face to Face, Forever",cluster:"PEOPLE",hero:true,tone:"Tender",story:"Held up beside a smiling face, the abstract art brilliant behind them, Thomas's green eyes direct and dignified — the cat at his most handsome and present. A portrait. A moment preserved because it was worth preserving. His white chest immaculate. His expression composed. His person beside him, smiling, as she always was."},
+{id:180,title:"Sleeping Beside His Person",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"In the dim intimacy of night, on his back across the bed beside a sleeping figure, belly exposed and paws raised — the picture of absolute safety. His pink toe beans and white belly luminous against the pale sheets. Thomas in the night. Thomas beside his people even in sleep. Thomas who was always there, even in the dark."},
+{id:181,title:"Family Portrait With Thomas",cluster:"PEOPLE",hero:true,tone:"Joyful",story:"Mother's Day — the whole family gathered around flowers, Thomas cradled in Kaiying's arms, his expression characteristically tolerant and dignified amid the joy. He was in every family photograph because he was a member of the family. This required no discussion. He was simply included, as he was simply included in everything, because he was simply there."},
+{id:182,title:"Fully Committed To Rest",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Flat on his back, paws splayed in every direction, stretched to his full magnificent length — Thomas in total surrender to comfort. He owned the sofa completely and used every centimetre of it. This was his work-from-home position. His weekend position. His any-occasion position when the sofa was involved."},
+{id:183,title:"Thomas Approves This Message",cluster:"PEOPLE",hero:true,tone:"Playful",story:"Nose touching the edge of the Mother's Day card reading mom, you are incredible — Thomas signing off on the sentiment. He had opinions about occasions and he made them known through proximity and nose contact. He approved of this card. He thought, one imagines, that it underestimated her somewhat, but it was a good start."},
+{id:184,title:"Curled Into Perfect Circle",cluster:"JOYS",hero:false,tone:"Peaceful",story:"A flawless spiral in his round cat bed, white chest inward, tabby back forming the outer curve, pink paws tucked under his chin — the overhead view of Thomas at his most geometrically perfect. He folded into himself with a precision that seemed almost mathematical. Everything about him was exact, in his own way."},
+{id:185,title:"Evening Loaf, City Lights",cluster:"GENTLEMAN",hero:false,tone:"Intimate",story:"In loaf position on the bed, eyes half-closed, a film on the screen behind him, the city glittering beyond the window — Thomas in his high-rise domain, unbothered and complete. He was a city cat who never needed the city directly. He needed the view of it, the knowledge of it, the light of it coming in through the windows."},
+{id:186,title:"Yoga Mat Saboteur",cluster:"QUIRKS",hero:true,tone:"Playful",story:"Sprawled luxuriously across the yoga mat while Kaiying leaned down smiling at him, her workout cheerfully abandoned — Thomas had always loved to exercise with Kaiying. He would walk under her during planks and sit on her yoga mat. He took the mat as a sign that the floor needed occupying. He occupied it completely, with great satisfaction."},
+{id:187,title:"Still Stealing the Mat",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Second shot, same position, same smile, same Thomas utterly unmoved by the inconvenience he was causing — this was not accidental. He held the yoga mat with conviction. Her smile tells you everything: this was not an intrusion. It was the best part of the workout."},
+{id:188,title:"Curled in His Cup",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Coiled tightly into the soft bowl of his cat tree, a perfect dark spiral from above — dumbbells on the floor below, the home gym also belonging to him. He slept in his cup and the gym awaited him below and none of it was a contradiction. Thomas's home contained everything and he was part of all of it."},
+{id:189,title:"Watching From Above",cluster:"GENTLEMAN",hero:true,tone:"Tender",story:"Chin resting on the rim of his hammock, those green-gold eyes peering over the edge with quiet intelligence and gentle curiosity — Thomas as small emperor, surveying from his elevated position. He had a quality of watching that made you feel observed with kindness. He noticed everything. He judged nothing. He simply watched, and understood."},
+{id:190,title:"Desk Supervisor on Duty",cluster:"PEOPLE",hero:false,tone:"Intimate",story:"Tucked between Dhruv's arms at the desk, watching the laptop screen with apparent professional interest — their daily co-working arrangement. Thomas attended every work-from-home day. He positioned himself between the arms, he watched the screens, he contributed his presence with quiet consistency. The children's artwork on the cabinet. The full household behind them. Thomas exactly in the middle of it all."},
+{id:191,title:"Grooming Among The Laundry",cluster:"QUIRKS",hero:false,tone:"Playful",story:"On the pile of dark clothing, one hind leg raised mid-groom with characteristic flexibility — Thomas keeping himself extremely clean, as he always did. He groomed with the focused attention of someone for whom cleanliness was not a chore but a practice. He kept himself impeccable throughout twelve years. It was a matter of self-respect."},
+{id:192,title:"Astronaut Cat, Watching Quietly",cluster:"QUIRKS",hero:false,tone:"Peaceful",story:"Through the clear bubble window of his space-capsule backpack, green eyes calm and watchful — Thomas in his carrier. They bought him the backpack carrier and he looked grumpy in it but they loved taking him. He looked grumpy and calm simultaneously, which was a Thomas special. The grumpy expression with the perfectly relaxed body. He was fine. He just wanted you to know he had reservations."},
+{id:193,title:"Ready For The Journey",cluster:"QUIRKS",hero:true,tone:"Poignant",story:"Upright and dignified inside his bubble backpack, door open beside him, green eyes meeting the camera directly — Thomas composed and alert, at ease in his vessel. There is something in this image that reads differently now. A cat so at ease inside the carrier that would take him through life's travels. Ready. He was always, in his way, ready."},
+{id:194,title:"Lying On Important Papers",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Reclined across the Airbnb listings, head sideways, paws forward with total ease — Thomas personally reviewing the travel plans and finding them acceptable, provided he was consulted. He was never consulted. He reviewed them anyway. His opinion was delivered via strategic physical occupation of the documents."},
+{id:195,title:"His Person, His Lap",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Cradled in Dhruv's lap at the desk, completely relaxed while the man worked across two laptops — the cat who simply belonged there. Dhruv held him with quiet pride, looking at the camera. Thomas's eyes soft and half-lidded with trust. This was their daily life: work happening around Thomas, Thomas at the centre of it, both of them exactly where they wanted to be."},
+{id:196,title:"Claimed the Red Backpack",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Nestled directly inside the open backpack on the tiles, body curled snugly inside it, looking up with calm knowing eyes — the bag now belongs to him. Thomas colonised containers. He sat inside things and made them his. The backpack had made the mistake of being left open. Thomas had made the obvious correction."},
+{id:197,title:"King of the Cardboard Box",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Inside the cardboard delivery box, perfectly contained, looking sideways with quiet contentment — cats and boxes are an ancient law, and Thomas observed it faithfully. Every delivery was also a Thomas delivery. Every box had one proper use before it could be broken down. He attended to this with great conscientiousness."},
+{id:198,title:"Paws Around the Keys",cluster:"QUIRKS",hero:false,tone:"Playful",story:"White paws wrapped around the set of keys, looking back with those green-gold eyes, relaxed and slightly mischievous — Thomas keeping the keys safe, or possibly keeping the keys. His relationship with the family's objects was proprietorial but benevolent. He claimed them. He guarded them. He did not use them. He simply kept them."},
+{id:199,title:"Belly to the World",cluster:"JOYS",hero:true,tone:"Joyful",story:"On his back, legs splayed with complete abandon, the upside-down face looking at the camera with a dreamy, silly expression — this was Thomas at his happiest and most unguarded. He returned to this posture throughout his life. It meant the same thing every time: I am completely at ease. I trust you completely. This is what happiness looks like."},
+{id:200,title:"Sleeping With a Note",cluster:"PEOPLE",hero:true,tone:"Poignant",story:"Eyes softly closed, mouth slightly open in the most peaceful expression, a small handwritten note tucked against his belly — Thomas holding a note close in sleep. Whatever it said, he kept it near him. This image arrives with great tenderness now: a cat asleep with a letter from the people who loved him. Still. Peaceful. Held."},
+{id:206,title:"Arm Rest, Keyboard Ignored",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Sprawled across a lap, using the forearm as a pillow, eyes softly closed in bliss, completely unbothered by the work that must continue around him — Thomas co-working. The keyboard could wait. The screen could wait. He had made his decision about where the afternoon was going, and it was going here, on this arm, in this warmth."},
+{id:207,title:"Same Lap, Still Boss",cluster:"QUIRKS",hero:false,tone:"Intimate",story:"Still there. Still unmoved. The human has adapted around the cat, as was appropriate. Thomas held positions with great consistency. Once he had decided something, it was decided. You could work around him. He was comfortable. This was the arrangement and he was pleased with it."},
+{id:208,title:"Sun-Soaked iPad Lounging",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Stretched beside the propped iPad, bathed in warm window light, half-closed eyes and relaxed sprawl — Thomas mastering the art of doing nothing beautifully. He was beside the iPad the way he was beside everything in the house: present, comfortable, giving the impression that the object had been placed there for his convenience."},
+{id:209,title:"Guardian of Christmas Tree",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Beneath the cat-proof tinsel tree wrapped around the lamp, ornaments dangling just above his upward gaze — the holiday consultant, present and attentive. He was there every Christmas. He reviewed the decorations annually. He had standards and he enforced them through presence. The tree needed him and he was willing to oblige."},
+{id:210,title:"Chest Cat, Pure Bliss",cluster:"PEOPLE",hero:true,tone:"Tender",story:"Melted across Dhruv's chest, eyes softly shut, while the man held him close and grinned with pure unguarded happiness — twelve years of love distilled into one effortless moment. This was what they had, all those mornings and evenings: Thomas on a chest, a person grinning, everything right."},
+{id:211,title:"Guardian of the Horizon",cluster:"JOYS",hero:true,tone:"Peaceful",story:"Silhouetted against the sea view at dusk, watching ships pass on the water below, perfectly still — a quiet sentinel between the domestic world and the wide ocean. He never needed the ocean directly. He needed to watch it. To hold his position before it. He was a cat who understood the value of looking at something larger than yourself."},
+{id:212,title:"Hotel Suite, His Rules",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"On the crisp white hotel bedding, green-gold eyes meeting the camera with calm ownership — wherever the family went, Thomas made it home. They took him for a staycation to Capella for New Year's 2020. He was scared and didn't sleep the whole night. But he was there, on the white bedding, and the family loved having him. The next morning he had already decided the suite was his."},
+{id:213,title:"Still Watching, Always Present",cluster:"GENTLEMAN",hero:false,tone:"Intimate",story:"The same hotel bed, the same steady gaze — Thomas comfortable in his own skin, utterly recognisable in any setting. He brought himself wherever he went. The hotel room, the balcony, the cat tree, the yoga mat, the suitcase — it didn't matter. Thomas was always Thomas. Complete in every context."},
+{id:214,title:"Completely, Blissfully Surrendered",cluster:"JOYS",hero:true,tone:"Joyful",story:"On his back across the sofa, paws outstretched, eyes closed in total abandon — a cat who knew without question that he was loved. He returned to this posture for twelve years. It was his signature. His declaration. The answer to the question that had been asked of him in February 2017, when a frightened boy hid under a bed: are you safe? Yes. He was saying yes."},
+{id:215,title:"Morocco Holidays, Thomas Stays",cluster:"QUIRKS",hero:false,tone:"Tender",story:"Curled beside the woven Morocco Holidays basket on his white fleece mat, quietly amused by the contrast — Thomas had claimed the cosiest spot, as always, turning any corner into his own sanctuary. He could make a home anywhere. He had made one of the apartment, one of the family, one of every room he had ever entered."},
+{id:216,title:"Surveying His Kingdom",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"On the patterned rug, head turned slightly upward, the sunlight catching his white chest and green eyes — Thomas tracking something with quiet authority. He moved through his domain with the calm of someone who had mapped every corner and found it satisfactory. He was always oriented. Always aware. Always composed."},
+{id:217,title:"The Skeptical Squint",cluster:"QUIRKS",hero:true,tone:"Playful",story:"The half-lidded sideways glance, the tabby brow deepening the expression into something almost comic — Thomas magnificently unimpressed, magnificently himself. He had a particular look for the camera that communicated both tolerance and condescension in equal measure. It was one of his finest works. He deployed it frequently."},
+{id:218,title:"Gentle Gaze Forward",cluster:"GENTLEMAN",hero:false,tone:"Tender",story:"Soft open eyes, natural light falling evenly across his face, the beautiful tabby markings in full detail — Thomas in a rare moment of quiet openness. He did not often look unguarded. When he did, you understood what was behind the composure: something gentle and wondering and deeply present."},
+{id:219,title:"Watching Something Far",cluster:"JOYS",hero:false,tone:"Peaceful",story:"In profile, ears forward, posture alert, gazing toward something beyond the frame — the elegant curve of his neck, the clean contrast of white fur. He looked like a small lion deciding whether to move. He rarely moved quickly. He considered first. Then, if it was worth it, he moved with great purpose."},
+{id:220,title:"Looking Right At You",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"Facing the camera directly, calm and steady, white chest broad and full in the warm light — Thomas present and composed. Of all the poses, this one feels most like a portrait. Most like a goodbye, though it wasn't. Or perhaps it is all goodbyes and hellos at once — a face that looks at you and says: I was here. I was entirely here."},
+{id:221,title:"Sprawled Upon the Persian",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Stretched on the richly patterned runner, one white paw extended forward mid-gesture, luminous green eyes upward — Thomas on his favourite floor covering, fully at length, the ornate rug framing him beautifully. He had excellent taste in rugs. He used them extensively."},
+{id:222,title:"Tucked Into Her Heart",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Chin-first into the neck of his person, who lay smiling with closed eyes, glasses slightly askew — Thomas held gently, leaning in fully. This was the relationship in miniature: one person with her eyes closed, trusting. One cat with his chin pressed into her neck, certain. Years of this. Years of this exact thing, this warmth, this choosing each other."},
+{id:223,title:"Sofa King of Everything",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Against the embroidered floral cushion, eyes half-closed in sovereign satisfaction, the laptop and coffee mug nearby — Thomas working from home. He was the finest colleague imaginable. He required nothing except proximity. He provided warmth and the occasional strategic interruption. His work-from-home performance reviews were outstanding."},
+{id:224,title:"Cat Out of Bag",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Peeking from inside the woven straw bag, one pink-padded paw stretched lazily outward, green eyes wide and bright — Thomas in his claimed den. He found containers throughout his life. Bags, bowls, boxes, backpacks — all of them evaluated and most of them occupied. The straw bag was an excellent find. He settled in immediately."},
+{id:225,title:"The Woven Tunnel Dweller",cluster:"QUIRKS",hero:true,tone:"Peaceful",story:"Fully settled inside the tipped straw bag, white chest and watchful face peering out — utterly at home in the most improbable of hideouts. Thomas found comfort in unexpected places. He had first hidden under a bed, frightened. He had spent twelve years finding new and surprising places to feel safe. He always found them. He always did."},
+{id:226,title:"Surveying His Kingdom",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"Upright on the console table beside the stack of books, gazing at the camera with quiet authority, white chest against the muted blue wall — Thomas almost portrait-like in his composure. A cat entirely at home in his domain. The books beside him. The wall behind him. The home around him. And Thomas, composed and present, precisely where he always was."},
+{id:227,title:"Completely, Blissfully Surrendered",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Fully stretched on his back along a sofa cushion, eyes closed, every muscle relaxed — paws loose, tail trailing, the very picture of a cat who feels entirely safe. Thomas sleeping like this was Thomas saying something wordless and complete. He felt safe here. He was safe here. He always was."},
+{id:228,title:"The Casual Wave",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Against the sofa back, one paw raised, looking sideways with supreme nonchalance — pink toe beans on full display, posture so humanlike it borders on comic. Thomas doing the casual wave. He did not plan it. He simply existed in this position and it was perfect and someone photographed it, as they should have."},
+{id:229,title:"Remote Work Assistant",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Across the MacBook keyboard, head down, paw stretched forward — the most effective meeting blocker imaginable. He owns this desk now. The screens behind him, the open work tabs, the cat draped across everything with perfect serenity. He was the best coworker any of them ever had. He never complained. He just needed to be there. He always needed to be there."},
+{id:230,title:"Still On The Clock",cluster:"QUIRKS",hero:true,tone:"Intimate",story:"Fully collapsed across the laptop keyboard, white belly soft against the keys, paw extending toward the trackpad with the confidence of someone clocking in. The warmth of the screen and his fur together. Thomas and the work-from-home life: inseparable, productive in his way, deeply present. He clocked in every day. He never missed one."},
+{id:231,title:"Chin Rest on the Bookend",cluster:"QUIRKS",hero:true,tone:"Playful",story:"Chin over the wooden bookend, green-gold eyes directly at the camera with that signature Thomas expression — knowing, calm, utterly unbothered. He found chin rests throughout his life. The book stand. The bookend. The edge of the perch. He was always finding the perfect architectural support for his most dignified posture."},
+{id:232,title:"Packed and Ready to Go",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Curled among the clothing inside the open suitcase, paws tucked beneath him, steady gaze saying: you're not leaving without me. He sat in every suitcase. He claimed every bag. His objection to departure was consistent and physical and completely sincere. He meant it. You are not going anywhere without me. He meant that too."},
+{id:233,title:"Sleeping Between the Legs",cluster:"PEOPLE",hero:false,tone:"Peaceful",story:"Nestled snugly between legs in the warm evening light, white belly rising and falling in total peace — this was Thomas at his most content. The warmth. The closeness. The familiar weight of a person on either side of him. He slept like this for twelve years. He chose it, every night. It was his preference, his habit, his home."},
+{id:234,title:"Serious Boxing Fan",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Upright on a bar stool at the desk, watching the boxing match on a laptop with complete attention, posture dignified and focused — Thomas with genuine opinions about the outcome. He watched the things his people watched and he brought his full attention to them. He was present in every activity. He was always in the room."},
+{id:235,title:"Hugging His Person Goodnight",cluster:"PEOPLE",hero:true,tone:"Intimate",story:"Wrapped around a leg in a full, tender embrace — paw extended, face pressed in, eyes closed in bliss. Not a cat resting but a cat holding on. Expressing love in the most physical way he knew. Of all the things Thomas did — the paw on the face, the chin on the shoulder, the slow blink — this may be the one that will be missed most. The full embrace. The holding on."},
+{id:236,title:"Nose Kiss Selfie",cluster:"PEOPLE",hero:true,tone:"Joyful",story:"Nose pressed tenderly against a cheek as Dhruv grinned with pure joy — the two of them, the morning person and his cat, caught in one of their thousands of close moments. Every morning Dhruv was first up. Every morning Thomas was there. Every morning this: closeness, warmth, the particular happiness of someone who loves their cat deeply and is loved by him entirely back."},
+{id:237,title:"Tucked Inside Dad's Jacket",cluster:"PEOPLE",hero:false,tone:"Intimate",story:"Wide luminous eyes from inside the open jacket, cocooned against his chest — a cat who knows exactly where he belongs. A city rooftop behind them. Thomas tucked in, peering out at the world from inside the warmth of his person. Safe. Alert. Exactly where he had decided to be."},
+{id:238,title:"Watching Over Baby Brother",cluster:"SON",hero:true,tone:"Poignant",story:"Before the tablet displaying the baby monitor feed, sitting perfectly still with quiet vigilance, a gentle guardian by nature — Thomas watching over the sleeping infant with devoted attention. He would do this often. Sit before the monitor. Watch the small figure breathing. Then come to Dhruv and Kaiying and stroke their legs: Tai is sleeping. Everything is fine. I am watching. You can rest."},
+{id:239,title:"Resting On Dad's Lap",cluster:"PEOPLE",hero:false,tone:"Tender",story:"Draped across Dhruv's chest, completely relaxed, while Dhruv gazed down with quiet tenderness — the laundry rack behind them making it beautifully ordinary. Love in an everyday moment. The ordinary afternoon. The man and his cat in the middle of Tuesday. This was most of it, really. Most of twelve years was this: ordinary and warm and exactly enough."},
+{id:240,title:"The Gentleman Sits Proudly",cluster:"GENTLEMAN",hero:false,tone:"Peaceful",story:"Perfectly upright on the tile floor, green-gold eyes looking directly into the camera with calm self-possession, white chest and grey tabby cap giving him an air of quiet elegance — this is Thomas at his most composed. The final distillation of twelve years of becoming exactly who he was. A gentleman. Precise, warm, dignified, entirely himself."},
+{id:241,title:"Sentinel at the Door",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"Framed perfectly by the doorway, gazing directly into the camera with calm authority, white chest gleaming, green-gold eyes steady and present — a portrait of quiet dignity in his own home. He stood in doorways like this often. Watching who was coming and going. Keeping track. He was always oriented toward his people. He always knew where everyone was."},
+{id:242,title:"Side by Side, Always",cluster:"SON",hero:true,tone:"Intimate",story:"Curled on the rug beside Tai, who had fallen asleep with his arm draped over the cat's body — viewed from above, the two of them perfectly mirrored in their rest. Small human, faithful cat. A moment of pure, wordless belonging. Thomas and Tai had been brothers from the beginning. They rested side by side as brothers rest."},
+{id:243,title:"Dreaming of Outside",cluster:"JOYS",hero:false,tone:"Peaceful",story:"Before the large window, gazing out over a cityscape of rooftops and trees, back turned to us, lost in his own quiet contemplation — the homebody with a wandering soul. He had a whole life within four walls and he made it vast. But sometimes he looked out. Sometimes he watched the world from above and thought whatever it is cats think about when they are very still and very far away."},
+{id:244,title:"Box Inspector on Duty",cluster:"QUIRKS",hero:false,tone:"Playful",story:"Atop the Urban Eco Garden box beside the other cardboard, sitting with impeccable posture — the delivery thoroughly inspected and approved. Every delivery to the apartment was Thomas's delivery first. He maintained this position consistently and with great conviction. The box was his. He sat on it to make this clear."},
+{id:245,title:"King of His Tower",cluster:"GENTLEMAN",hero:false,tone:"Tender",story:"Reclined on the padded perch, one paw draped over the edge with languid elegance, a worn toy tucked beside him — gazing down with the calm confidence of someone entirely at peace with his world. Regal. Unhurried. The worn toy beside him showing twelve years of use. He had used everything in his life completely, and he had loved it all."},
+{id:251,title:"Sentinel By The Window",cluster:"GENTLEMAN",hero:true,tone:"Poignant",story:"Tall and alert on a chair arm, gazing with those striking eyes toward something beyond the frame, lush treetops and city road through the high-rise window — his life as an elevated, well-loved indoor cat. He knew every view from every window in that apartment. He sat before them all. He watched the city change and stayed the same, steady and composed above it."},
+{id:252,title:"Still Watching, Still Proud",cluster:"GENTLEMAN",hero:false,tone:"Tender",story:"The same dignified pose held — unhurried, watchful, present. Time belonged to him when he wanted it to. He could hold a moment as long as he chose, comfortable in his own stillness, requiring nothing but his own good company. He held this pose because it was still worth holding. He was still watching."},
+{id:253,title:"King Of His Tower",cluster:"JOYS",hero:false,tone:"Joyful",story:"One white paw dangling with casual elegance across the platform, gazing directly into the camera with calm confidence — Thomas owning his elevated kingdom. The sisal posts and cosy grey platforms of a home thoughtfully built around his happiness. He knew the people who built it. He loved them for it. He used every inch they gave him."},
+{id:254,title:"Belly To The World",cluster:"QUIRKS",hero:true,tone:"Peaceful",story:"On his back, paws curled softly in the air, completely surrendered to sleep and safety — his white belly fully exposed. A tender, almost comic portrait of a cat who knew he was utterly, unconditionally loved. He came to this knowledge slowly — under a bed, through two weeks of a patient voice. And then he knew it for twelve years. And this is how it looked."},
+{id:255,title:"Dreaming, Paws Raised High",cluster:"JOYS",hero:false,tone:"Peaceful",story:"The same blissful upside-down pose, lost to the world. Seen again, the image becomes less a snapshot and more a signature — this is how Thomas rested when all was right. This is what all-right looked like for him: paws raised, belly soft, the world outside his closed eyes exactly as it should be. He rested in it completely. He always did."},
+// ─── MEMORY STARS (no photo) ───
+{id:'M1',title:"The Dinner Murmur",cluster:"JOYS",hero:false,tone:"Joyful",story:"There was a sound Thomas made when called for dinner — not quite a meow, not quite a purr, but something in between, something particular to him, that began the moment he heard his name and didn't stop until he reached his bowl. He would scurry along, murmuring the whole way, and whoever called him would feel, every time, that they had done something right.",photo:null},
+{id:'M2',title:"The Door Tiff",cluster:"QUIRKS",hero:false,tone:"Playful",story:"He had many tiffs with Kaiying about the door. He would scratch at it to come in — persistent, rhythmic, entirely certain he was in the right — and she would remonstrate with him, and he would scratch again, and eventually one of them would concede. It was usually Kaiying. He knew it would be.",photo:null},
+{id:'M3',title:"The Morning Ritual",cluster:"PEOPLE",hero:false,tone:"Tender",story:"Every morning, Dhruv was first awake. Every morning, Thomas was already there — waiting, or watching, or simply present in the way he always was. The feeding bowl. The quiet kitchen. The particular quality of early light. For nine years they had this hour together before anyone else woke. It was theirs. It is still, somewhere.",photo:null},
+{id:'M4',title:"Between the Legs at Night",cluster:"JOYS",hero:false,tone:"Peaceful",story:"He slept between Dhruv's legs every night. Chose the spot with the precision of someone who had measured it against every other option and found it definitively best. He was warm there. He was close. He was held without being held. Every night, without fail, he found his way there, and that was how the night ended.",photo:null},
+{id:'M5',title:"The Christmas Consultancy",cluster:"QUIRKS",hero:false,tone:"Joyful",story:"Every year, Thomas helped decorate the Christmas tree. The family called him the consultant. He reviewed each ornament with the focused attention of a professional. He tested the structural integrity of the lower branches. He made his opinions known through proximity and nose contact. The tree was never quite right until he had approved it.",photo:null},
+{id:'M6',title:"The Chair That Changed Everything",cluster:"EARLY",hero:true,tone:"Poignant",story:"The evening Dhruv first came to dinner, Thomas waited until he got up from his chair. Then he jumped onto it. He smelled the warm seat with great seriousness — taking in everything about this new person. When Dhruv and Kaiying started dating from then, it was because a frightened cat had decided, quietly and without ceremony, that the man in the chair was worth knowing.",photo:null},
+{id:'M7',title:"The First Paw on the Face",cluster:"EARLY",hero:true,tone:"Tender",story:"One of the first photographs ever taken — Thomas reaching his paw up to stroke Dhruv's face. He was still learning to trust. He was still finding his way. But already the gesture was there: reach toward. Touch gently. Say, in the only way available: I see you, and I am glad you are here. This was how Dhruv and Thomas began. This paw. This face. This choosing.",photo:null},
+];
+
+// ─────────────────────────────────────────────
+// STAR SYSTEM
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('starCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, stars = [], bgStars = [], catLines = [];
+let animFrame;
+const photoBase = GITHUB_BASE;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  initCatConstellation();
 }
 
-async function processBatch(files, batchNum, totalBatches, startNum, apiKey) {
-  const imageContents = await Promise.all(files.map(async (file) => {
-    const base64 = await fileToBase64(file);
-    const mediaType = file.type || 'image/jpeg';
-    return {
-      type: "image",
-      source: { type: "base64", media_type: mediaType, data: base64 }
+// Background ambient stars
+function initBgStars() {
+  bgStars = [];
+  for (let i = 0; i < 350; i++) {
+    bgStars.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 0.8 + 0.2,
+      alpha: Math.random() * 0.6 + 0.1,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      twinkleOffset: Math.random() * Math.PI * 2,
+      drift: Math.random() * 0.03 + 0.01,
+    });
+  }
+}
+
+// Thomas's cat constellation — a seated cat, precisely designed
+// Seated cat facing left: head polygon, two sharp triangular ears,
+// neck, body, two front legs with paws, tail sweeping right and curling up.
+function initCatConstellation() {
+  const cx = W * 0.50;
+  const cy = H * 0.44;
+  const sc = Math.min(Math.min(W, H) * 0.115, 90);
+
+  const p = (dx, dy) => ({ x: cx + sc*dx, y: cy + sc*dy });
+
+  const points = [
+    p(-0.28, -2.20),  //  0 head top
+    p( 0.20, -2.05),  //  1 head top-right
+    p( 0.38, -1.70),  //  2 head right
+    p( 0.32, -1.32),  //  3 head bottom-right
+    p( 0.00, -1.18),  //  4 chin
+    p(-0.32, -1.32),  //  5 head bottom-left
+    p(-0.42, -1.68),  //  6 head left
+    p(-0.35, -2.05),  //  7 head top-left
+    p(-0.72, -2.88),  //  8 LEFT EAR TIP
+    p( 0.42, -2.80),  //  9 RIGHT EAR TIP
+    p(-0.35, -0.98),  // 10 neck-left base
+    p( 0.28, -0.98),  // 11 neck-right base
+    p(-0.52, -0.72),  // 12 body top-left
+    p( 0.55, -0.80),  // 13 body top-right
+    p(-0.55,  0.55),  // 14 body bottom-left
+    p( 0.58,  0.42),  // 15 body bottom-right / haunch
+    p(-0.52,  1.62),  // 16 left front paw
+    p( 0.18,  1.62),  // 17 right front paw
+    p( 0.75,  0.60),  // 18 tail base
+    p( 1.25,  1.00),  // 19 tail sweep
+    p( 1.68,  0.40),  // 20 tail curl
+    p( 1.45, -0.42),  // 21 tail tip
+  ];
+
+  catLines = [
+    [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0], // head polygon
+    [7,8],[8,0],   // left ear triangle
+    [0,9],[9,1],   // right ear triangle
+    [5,10],[3,11], // neck lines down
+    [10,12],[11,13], // neck to shoulders
+    [12,13],       // top of body
+    [12,14],       // left body side
+    [14,15],       // belly
+    [13,15],       // back/haunch
+    [14,16],       // left front leg
+    [15,17],       // right front leg
+    [16,17],       // paw ground line
+    [15,18],[18,19],[19,20],[20,21], // tail
+  ];
+
+  window.catPoints = points;
+  drawCatConstellation(points);
+}
+
+function drawCatConstellation(points) {
+  const svg = document.getElementById('catConstellation');
+  svg.style.cssText = `position:absolute;inset:0;width:100%;height:100%;pointer-events:none;`;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+
+  // Lines
+  catLines.forEach(([a,b]) => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', points[a].x);
+    line.setAttribute('y1', points[a].y);
+    line.setAttribute('x2', points[b].x);
+    line.setAttribute('y2', points[b].y);
+    line.setAttribute('stroke', 'rgba(200,175,100,0.32)');
+    line.setAttribute('stroke-width', '1.2');
+    svg.appendChild(line);
+  });
+
+  // Points — brighter dots at each star node
+  points.forEach((p, i) => {
+    // Hero nodes (ear tips and paw nodes) slightly larger
+    const isHero = [8,9,16,17,21].includes(i);
+    const r = isHero ? 3 : 2;
+    const alpha = isHero ? 0.9 : 0.55;
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', p.x);
+    circle.setAttribute('cy', p.y);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', `rgba(240,210,120,${alpha})`);
+    // Small glow for hero nodes
+    if (isHero) {
+      circle.setAttribute('filter', 'none');
+      circle.setAttribute('style', `filter: drop-shadow(0 0 3px rgba(240,200,100,0.8))`);
+    }
+    svg.appendChild(circle);
+  });
+}
+
+// Place memory stars
+function initPhotoStars() {
+  stars = [];
+  const margin = { top: 90, bottom: 80, left: 30, right: 30 };
+  const availW = W - margin.left - margin.right;
+  const availH = H - margin.top - margin.bottom;
+
+  // Use seeded-ish positions based on photo id for consistency
+  photos.forEach((photo, i) => {
+    // Avoid the constellation area (center ~50-60% x, 30-50% y)
+    let x, y, attempts = 0;
+    do {
+      const seed = (typeof photo.id === 'number' ? photo.id : i + 300);
+      const angle = (seed * 137.508) % 360 * (Math.PI/180);
+      const radius = (0.15 + ((seed * 73) % 100) / 100 * 0.75);
+      x = margin.left + availW * (0.5 + Math.cos(angle) * radius * 0.48 + (Math.sin(seed*3.7)*0.08));
+      y = margin.top + availH * (0.5 + Math.sin(angle) * radius * 0.42 + (Math.cos(seed*2.3)*0.07));
+      attempts++;
+    } while (
+      attempts < 8 &&
+      x > W*0.38 && x < W*0.66 &&
+      y > H*0.28 && y < H*0.56
+    );
+
+    // Cluster color
+    const clusterKey = photo.cluster;
+    const cluster = CLUSTERS[clusterKey];
+    const color = cluster ? cluster.color : '#ffffff';
+
+    // Size based on hero
+    const baseR = photo.hero ? (2.2 + Math.random() * 1.0) : (1.0 + Math.random() * 0.8);
+
+    stars.push({
+      photo,
+      x, y,
+      baseX: x, baseY: y,
+      r: baseR,
+      color,
+      hero: photo.hero,
+      twinkleSpeed: 0.01 + Math.random() * 0.02,
+      twinkleOffset: Math.random() * Math.PI * 2,
+      driftSpeed: 0.04 + Math.random() * 0.04,
+      driftOffset: Math.random() * Math.PI * 2,
+      age: Math.random() * 1000,
+      hitR: Math.max(baseR * 3, 18), // touch target
+    });
+  });
+}
+
+// ─── ANIMATION LOOP ───
+function animate(t) {
+  ctx.clearRect(0, 0, W, H);
+  const time = t * 0.001;
+
+  // Draw background stars (twinkle, no drift)
+  bgStars.forEach(s => {
+    const tw = Math.sin(time * s.twinkleSpeed * 60 + s.twinkleOffset) * 0.3;
+    ctx.globalAlpha = s.alpha + tw;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // Draw photo stars (drift upward gently)
+  stars.forEach(s => {
+    s.age += 0.016;
+    // Slow upward drift
+    const drift = s.age * s.driftSpeed;
+    const wobble = Math.sin(s.age * 0.3 + s.driftOffset) * 8;
+    const yOff = -(drift % (H * 0.4));
+    const xOff = wobble;
+
+    s.x = s.baseX + xOff;
+    s.y = s.baseY + yOff;
+
+    // Wrap: when star drifts too high, reset to bottom area
+    if (s.y < -20) {
+      s.baseY += H * 0.4;
+      if (s.baseY > H - 80) s.baseY = H * 0.5 + Math.random() * H * 0.4;
+    }
+
+    const tw = Math.sin(s.age * s.twinkleSpeed * 60 + s.twinkleOffset);
+    const alpha = 0.7 + tw * 0.3;
+    const glow = s.hero ? 3 : 1.5;
+
+    // Glow
+    if (s.hero) {
+      const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
+      grad.addColorStop(0, hexToRgba(s.color, 0.4 * alpha));
+      grad.addColorStop(1, 'transparent');
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // Core star
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fill();
+
+    // Sparkle cross for hero stars
+    if (s.hero) {
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 0.5;
+      const cl = s.r * 3;
+      ctx.beginPath();
+      ctx.moveTo(s.x - cl, s.y); ctx.lineTo(s.x + cl, s.y);
+      ctx.moveTo(s.x, s.y - cl); ctx.lineTo(s.x, s.y + cl);
+      ctx.stroke();
+    }
+  });
+
+  ctx.globalAlpha = 1;
+  animFrame = requestAnimationFrame(animate);
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ─── SHOOTING STAR ───
+function shootingStar() {
+  const el = document.createElement('div');
+  el.className = 'shooting-star';
+  el.style.top = (Math.random() * 40 + 5) + '%';
+  el.style.left = (Math.random() * 40 + 5) + '%';
+  el.style.transform = `rotate(${30 + Math.random() * 20}deg)`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// Schedule shooting stars
+function scheduleShootingStars() {
+  setInterval(() => {
+    if (Math.random() < 0.4) shootingStar();
+  }, 12000);
+}
+
+// ─── STAR CLICK / TAP ───
+function getStarAt(px, py) {
+  let best = null, bestDist = Infinity;
+  stars.forEach(s => {
+    const dx = s.x - px, dy = s.y - py;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < s.hitR && dist < bestDist) {
+      bestDist = dist;
+      best = s;
+    }
+  });
+  return best;
+}
+
+canvas.addEventListener('click', handleStarClick);
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const rect = canvas.getBoundingClientRect();
+  handleStarClick({
+    clientX: t.clientX - rect.left,
+    clientY: t.clientY - rect.top
+  });
+}, {passive:false});
+
+function handleStarClick(e) {
+  const rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : {left:0,top:0};
+  const px = (e.clientX || 0) - (rect.left || 0);
+  const py = (e.clientY || 0) - (rect.top || 0);
+
+  // Touch ring visual
+  const ring = document.createElement('div');
+  ring.className = 'star-touch-ring';
+  ring.style.left = (e.clientX || px) + 'px';
+  ring.style.top = (e.clientY || py) + 'px';
+  document.body.appendChild(ring);
+  setTimeout(() => ring.remove(), 700);
+
+  const star = getStarAt(px, py);
+  if (star) openCard(star.photo);
+}
+
+// ─── CARD ───
+function openCard(photo) {
+  const overlay = document.getElementById('cardOverlay');
+  const title = document.getElementById('cardTitle');
+  const story = document.getElementById('cardStory');
+  const tone = document.getElementById('cardTone');
+  const clusterDot = document.getElementById('cardClusterDot');
+  const clusterName = document.getElementById('cardClusterName');
+  const img = document.getElementById('cardPhoto');
+  const placeholder = document.getElementById('cardPhotoPlaceholder');
+
+  const cluster = CLUSTERS[photo.cluster];
+  const clusterColor = cluster ? cluster.color : '#fff';
+
+  clusterDot.style.background = clusterColor;
+  clusterName.textContent = cluster ? `${cluster.symbol} ${cluster.name}` : '';
+
+  const heroMark = photo.hero ? '<span class="card-hero-shimmer">✦</span>' : '';
+  title.innerHTML = photo.title + heroMark;
+  story.textContent = photo.story;
+  tone.textContent = photo.tone ? `— ${photo.tone}` : '';
+
+  // Photo — use PHOTO_MAP for matched photos, fallback to placeholder
+  const photoId = typeof photo.id === 'number' ? String(photo.id) : null;
+  const mappedFilename = photoId ? PHOTO_MAP[photoId] : null;
+
+  if (photo.photo === null || !photoId) {
+    // Memory star — no photo
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+  } else if (mappedFilename) {
+    // Matched photo — use the exact filename from the map
+    placeholder.style.display = 'none';
+    img.style.display = 'block';
+    img.src = `${photoBase}${encodeURIComponent(mappedFilename)}`;
+    img.onerror = function() {
+      img.style.display = 'none';
+      placeholder.style.display = 'flex';
     };
-  }));
-
-  const messages = [{
-    role: "user",
-    content: [
-      ...imageContents,
-      {
-        type: "text",
-        text: "You are helping build a memorial constellation for Thomas, a beloved cat who passed away on May 25th 2025 at age 12. He was a white and grey tabby with green-gold eyes, pink nose, black-tipped tail and paws. He was extremely affectionate, loved the sun, water, grooming, and was gentle with the family's young son. Please analyse each of the " + files.length + " photos in this batch (batch " + batchNum + " of " + totalBatches + ") and for each one provide:\n- Photo number (starting at " + startNum + ")\n- Title (5 words max)\n- Description (2-3 sentences of what is shown)\n- Star cluster: THE EARLY YEARS / HIS PEOPLE / HIS SIMPLE JOYS / THE GENTLEMAN / KEY DATES / HIS SON / HIS QUIRKS\n- Emotional tone: tender / joyful / peaceful / playful / intimate / poignant\n- HERO photo: yes or no (hero = most powerful, emotionally resonant — max 1-2 per batch)\n\nFormat each entry with these labels clearly. Be warm but concise."
-      }
-    ]
-  }];
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2000,
-      messages: messages
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || 'HTTP ' + response.status);
+  } else {
+    // Unmatched — try sequential filename as fallback, then placeholder
+    placeholder.style.display = 'none';
+    img.style.display = 'block';
+    img.src = `${photoBase}${photoId}.jpg`;
+    img.onerror = function() {
+      img.onerror = function() {
+        img.style.display = 'none';
+        placeholder.style.display = 'flex';
+      };
+      img.src = `${photoBase}${photoId}.JPG`;
+    };
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  overlay.classList.add('active');
+  document.getElementById('cardBody').scrollTop = 0;
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+function closeCard(e) {
+  if (!e || e.target === document.getElementById('cardOverlay') || e.currentTarget === document.getElementById('cardClose')) {
+    document.getElementById('cardOverlay').classList.remove('active');
+  }
 }
 
-function appendStatus(msg) {
-  const el = document.getElementById('status');
-  el.textContent += msg;
-  el.scrollTop = el.scrollHeight;
+// ─── INTRO ───
+function enterConstellation() {
+  const intro = document.getElementById('intro');
+  intro.classList.add('hidden');
+  setTimeout(() => intro.style.display = 'none', 1500);
+  if (!animFrame) startSky();
+  setTimeout(shootingStar, 3000);
+  scheduleShootingStars();
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function startSky() {
+  resize();
+  initBgStars();
+  initPhotoStars();
+  animate(0);
 }
 
-function downloadCatalogue() {
-  const blob = new Blob([fullCatalogue], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'thomas-catalogue.txt';
-  a.click();
-}
+window.addEventListener('resize', () => {
+  resize();
+  initBgStars();
+  initPhotoStars();
+});
+
+// Start background render immediately (behind intro)
+startSky();
+
+// Keyboard close
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeCard({target: document.getElementById('cardOverlay')});
+});
 </script>
 </body>
 </html>
