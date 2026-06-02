@@ -1385,16 +1385,23 @@ canvas.addEventListener('touchmove', (e) => {
 
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
+  const wasPinching = isPinching;
   if (e.touches.length < 2) isPinching = false;
   if (e.touches.length === 0) {
     // Only fire tap if didn't move and wasn't a pinch
-    if (!touchMoved && !isPinching && Date.now() - touchStartTime < 400) {
+    if (!touchMoved && !wasPinching && Date.now() - touchStartTime < 400) {
       const t = e.changedTouches[0];
       const rect = canvas.getBoundingClientRect();
       const px = t.clientX - rect.left;
       const py = t.clientY - rect.top;
       fireStarTap(px, py, t.clientX, t.clientY);
     }
+    // Reset single-finger pan state
+    isPointing = false;
+  } else if (e.touches.length === 1) {
+    // One finger lifted during pinch - continue with remaining finger for pan
+    lastPanX = e.touches[0].clientX;
+    lastPanY = e.touches[0].clientY;
   }
 }, { passive: false });
 
@@ -1406,19 +1413,32 @@ function getPinchDist(touches) {
 
 function zoomAt(screenX, screenY, delta) {
   const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, camScale * delta));
-  // Zoom toward the point under the cursor/finger
-  camX = screenX - (screenX - camX) * (newScale / camScale);
-  camY = screenY - (screenY - camY) * (newScale / camScale);
+  if (newScale === camScale) return;
+  // Zoom toward the point under cursor/finger
+  const scaleRatio = newScale / camScale;
+  camX = screenX - (screenX - camX) * scaleRatio;
+  camY = screenY - (screenY - camY) * scaleRatio;
   camScale = newScale;
   clampCamera();
 }
 
 function clampCamera() {
-  // Don't let the sky drift outside the viewport
-  const minX = W * (1 - camScale);
-  const minY = H * (1 - camScale);
-  camX = Math.max(minX, Math.min(0, camX));
-  camY = Math.max(minY, Math.min(0, camY));
+  // At scale 1, no panning allowed (minX=maxX=0)
+  // At scale > 1, allow panning within the zoomed bounds
+  if (camScale <= 1) {
+    camX = 0; camY = 0;
+    return;
+  }
+  // The scaled canvas is W*camScale wide, H*camScale tall
+  // camX/camY is the top-left offset
+  // Max camX = 0 (can't pan right past the left edge)
+  // Min camX = W - W*camScale (can't pan left past the right edge)
+  const maxX = 0;
+  const minX = W - W * camScale;
+  const maxY = 0;
+  const minY = H - H * camScale;
+  camX = Math.max(minX, Math.min(maxX, camX));
+  camY = Math.max(minY, Math.min(maxY, camY));
 }
 
 function fireStarTap(px, py, screenX, screenY) {
@@ -1436,12 +1456,28 @@ function fireStarTap(px, py, screenX, screenY) {
 let lastTapTime = 0;
 canvas.addEventListener('touchend', (e) => {
   const now = Date.now();
-  if (now - lastTapTime < 300 && e.changedTouches.length === 1) {
-    // Double tap — reset to full view
-    camX = 0; camY = 0; camScale = 1;
+  if (now - lastTapTime < 350 && e.changedTouches.length === 1) {
+    // Double tap — animate reset to full view
+    animateResetZoom();
   }
   lastTapTime = now;
 }, { passive: true });
+
+function animateResetZoom() {
+  const startX = camX, startY = camY, startScale = camScale;
+  const duration = 350;
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    camX = startX * (1 - ease);
+    camY = startY * (1 - ease);
+    camScale = startScale + (1 - startScale) * ease;
+    if (t < 1) requestAnimationFrame(step);
+    else { camX = 0; camY = 0; camScale = 1; }
+  }
+  requestAnimationFrame(step);
+}
 
 // ─── CARD ───
 function openCard(photo) {
