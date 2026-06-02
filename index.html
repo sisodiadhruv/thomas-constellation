@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>Thomas's Constellation</title>
 
 <!-- PWA / iPhone home screen -->
@@ -237,15 +237,16 @@ html, body {
 
 #cardPhoto {
   width:100%;
-  aspect-ratio:4/3;
-  object-fit:cover;
+  max-height:55vh;
+  object-fit:contain;
+  object-position:center center;
   display:block;
   background:#08102a;
   flex-shrink:0;
 }
 #cardPhotoPlaceholder {
   width:100%;
-  aspect-ratio:4/3;
+  height:220px;
   background: linear-gradient(135deg, #08102a 0%, #0d1a3a 100%);
   display:flex; align-items:center; justify-content:center;
   flex-shrink:0;
@@ -449,6 +450,18 @@ html, body {
   <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-gentleman)"></div>The Gentleman</div>
   <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-quirks)"></div>His Quirks</div>
   <div class="legend-item"><div class="legend-dot" style="background:var(--cluster-dates)"></div>Key Dates</div>
+</div>
+
+<!-- ZOOM HINT -->
+<div id="zoomHint" style="
+  position:fixed; bottom:52px; right:16px; z-index:50;
+  font-family:'Cinzel',serif; font-size:9px; letter-spacing:0.15em;
+  color:rgba(200,180,120,0.45); text-transform:uppercase;
+  pointer-events:none; opacity:0;
+  animation: fadeIn 2s 5s forwards;
+  text-align:right; line-height:1.8;
+">
+  Pinch to zoom<br>Drag to pan<br>Double-tap to reset
 </div>
 
 <!-- CARD OVERLAY -->
@@ -978,6 +991,14 @@ const canvas = document.getElementById('starCanvas');
 const ctx = canvas.getContext('2d');
 let W, H, stars = [], bgStars = [], catLines = [];
 let animFrame;
+
+// ─── ZOOM / PAN STATE ───
+let camX = 0, camY = 0, camScale = 1;
+let isPinching = false, isPointing = false;
+let lastPinchDist = 0;
+let lastPanX = 0, lastPanY = 0;
+let panStartX = 0, panStartY = 0;
+const MIN_SCALE = 1.0, MAX_SCALE = 5.0;
 const photoBase = GITHUB_BASE;
 
 function resize() {
@@ -1059,7 +1080,7 @@ function initCatConstellation() {
 
 function drawCatConstellation(points) {
   const svg = document.getElementById('catConstellation');
-  svg.style.cssText = `position:absolute;inset:0;width:100%;height:100%;pointer-events:none;`;
+  svg.style.cssText = `position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform-origin:0 0;`;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = '';
 
@@ -1145,9 +1166,18 @@ function initPhotoStars() {
 }
 
 // ─── ANIMATION LOOP ───
+function applyCamera() {
+  ctx.save();
+  ctx.translate(camX, camY);
+  ctx.scale(camScale, camScale);
+}
+
 function animate(t) {
   ctx.clearRect(0, 0, W, H);
   const time = t * 0.001;
+  ctx.save();
+  ctx.translate(camX, camY);
+  ctx.scale(camScale, camScale);
 
   // Draw background stars (twinkle, no drift)
   bgStars.forEach(s => {
@@ -1214,6 +1244,7 @@ function animate(t) {
   });
 
   ctx.globalAlpha = 1;
+  ctx.restore(); // end camera transform
   animFrame = requestAnimationFrame(animate);
 }
 
@@ -1244,11 +1275,16 @@ function scheduleShootingStars() {
 
 // ─── STAR CLICK / TAP ───
 function getStarAt(px, py) {
+  // Convert screen coords to world coords (accounting for camera)
+  const worldX = (px - camX) / camScale;
+  const worldY = (py - camY) / camScale;
   let best = null, bestDist = Infinity;
   stars.forEach(s => {
-    const dx = s.x - px, dy = s.y - py;
+    const dx = s.x - worldX, dy = s.y - worldY;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < s.hitR && dist < bestDist) {
+    // Adjust hit radius inversely with scale so small stars are still tappable
+    const hitR = Math.max(s.hitR / camScale, 18);
+    if (dist < hitR && dist < bestDist) {
       bestDist = dist;
       best = s;
     }
@@ -1256,33 +1292,156 @@ function getStarAt(px, py) {
   return best;
 }
 
-canvas.addEventListener('click', handleStarClick);
+// ─── TOUCH & MOUSE INTERACTION (zoom + pan + tap) ───
+
+let touchMoved = false;
+let touchStartTime = 0;
+
+canvas.addEventListener('mousedown', (e) => {
+  if (document.getElementById('cardOverlay').classList.contains('active')) return;
+  isPointing = true;
+  lastPanX = e.clientX;
+  lastPanY = e.clientY;
+  panStartX = e.clientX;
+  panStartY = e.clientY;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!isPointing) return;
+  const dx = e.clientX - lastPanX;
+  const dy = e.clientY - lastPanY;
+  camX += dx; camY += dy;
+  clampCamera();
+  lastPanX = e.clientX;
+  lastPanY = e.clientY;
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  if (!isPointing) return;
+  isPointing = false;
+  const moved = Math.abs(e.clientX - panStartX) + Math.abs(e.clientY - panStartY);
+  if (moved < 6) {
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    fireStarTap(px, py, e.clientX, e.clientY);
+  }
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  zoomAt(mx, my, delta);
+}, { passive: false });
+
+canvas.addEventListener('touchstart', (e) => {
+  if (document.getElementById('cardOverlay').classList.contains('active')) return;
+  touchMoved = false;
+  touchStartTime = Date.now();
+  if (e.touches.length === 2) {
+    isPinching = true;
+    lastPinchDist = getPinchDist(e.touches);
+    lastPanX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    lastPanY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  } else if (e.touches.length === 1) {
+    lastPanX = e.touches[0].clientX;
+    lastPanY = e.touches[0].clientY;
+    panStartX = e.touches[0].clientX;
+    panStartY = e.touches[0].clientY;
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  touchMoved = true;
+  if (e.touches.length === 2) {
+    // Pinch zoom
+    const dist = getPinchDist(e.touches);
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    const rect = canvas.getBoundingClientRect();
+    const delta = dist / lastPinchDist;
+    zoomAt(midX - rect.left, midY - rect.top, delta);
+    // Also pan with pinch midpoint
+    camX += midX - lastPanX;
+    camY += midY - lastPanY;
+    clampCamera();
+    lastPinchDist = dist;
+    lastPanX = midX;
+    lastPanY = midY;
+  } else if (e.touches.length === 1 && !isPinching) {
+    // Single finger pan
+    const dx = e.touches[0].clientX - lastPanX;
+    const dy = e.touches[0].clientY - lastPanY;
+    camX += dx; camY += dy;
+    clampCamera();
+    lastPanX = e.touches[0].clientX;
+    lastPanY = e.touches[0].clientY;
+  }
+}, { passive: false });
+
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
-  const t = e.changedTouches[0];
-  const rect = canvas.getBoundingClientRect();
-  handleStarClick({
-    clientX: t.clientX - rect.left,
-    clientY: t.clientY - rect.top
-  });
-}, {passive:false});
+  if (e.touches.length < 2) isPinching = false;
+  if (e.touches.length === 0) {
+    // Only fire tap if didn't move and wasn't a pinch
+    if (!touchMoved && !isPinching && Date.now() - touchStartTime < 400) {
+      const t = e.changedTouches[0];
+      const rect = canvas.getBoundingClientRect();
+      const px = t.clientX - rect.left;
+      const py = t.clientY - rect.top;
+      fireStarTap(px, py, t.clientX, t.clientY);
+    }
+  }
+}, { passive: false });
 
-function handleStarClick(e) {
-  const rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : {left:0,top:0};
-  const px = (e.clientX || 0) - (rect.left || 0);
-  const py = (e.clientY || 0) - (rect.top || 0);
+function getPinchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx*dx + dy*dy);
+}
 
-  // Touch ring visual
+function zoomAt(screenX, screenY, delta) {
+  const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, camScale * delta));
+  // Zoom toward the point under the cursor/finger
+  camX = screenX - (screenX - camX) * (newScale / camScale);
+  camY = screenY - (screenY - camY) * (newScale / camScale);
+  camScale = newScale;
+  clampCamera();
+}
+
+function clampCamera() {
+  // Don't let the sky drift outside the viewport
+  const minX = W * (1 - camScale);
+  const minY = H * (1 - camScale);
+  camX = Math.max(minX, Math.min(0, camX));
+  camY = Math.max(minY, Math.min(0, camY));
+}
+
+function fireStarTap(px, py, screenX, screenY) {
   const ring = document.createElement('div');
   ring.className = 'star-touch-ring';
-  ring.style.left = (e.clientX || px) + 'px';
-  ring.style.top = (e.clientY || py) + 'px';
+  ring.style.left = screenX + 'px';
+  ring.style.top  = screenY + 'px';
   document.body.appendChild(ring);
   setTimeout(() => ring.remove(), 700);
-
   const star = getStarAt(px, py);
   if (star) openCard(star.photo);
 }
+
+// Double-tap to reset zoom
+let lastTapTime = 0;
+canvas.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTapTime < 300 && e.changedTouches.length === 1) {
+    // Double tap — reset to full view
+    camX = 0; camY = 0; camScale = 1;
+  }
+  lastTapTime = now;
+}, { passive: true });
 
 // ─── CARD ───
 function openCard(photo) {
@@ -1369,6 +1528,16 @@ window.addEventListener('resize', () => {
   initBgStars();
   initPhotoStars();
 });
+
+// Sync SVG constellation with canvas camera transform
+function syncConstellationTransform() {
+  const svg = document.getElementById('catConstellation');
+  if (svg) {
+    svg.style.transform = `translate(${camX}px, ${camY}px) scale(${camScale})`;
+  }
+  requestAnimationFrame(syncConstellationTransform);
+}
+syncConstellationTransform();
 
 // Start background render immediately (behind intro)
 startSky();
